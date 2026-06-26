@@ -153,13 +153,193 @@ mark { background: #fef08a; border-radius: 2px; }
 .top-mention { font-size: 10px; color: var(--muted); }
 .top-score { font-size: 18px; font-weight: 800; }
 
+/* ── Inline-grid helpers (so they can go responsive) ─────────────────────────── */
+.corr-grid    { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.avg-grid     { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-top: 8px; }
+.ep-mini-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.ep-year-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.tranche-row   { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.tranche-label { width: 185px; font-weight: 600; }
+.tab-short { display: none; }
+
+/* ════════════════════════════════════════════════════════════════════════════ */
+/*  RESPONSIVE                                                                    */
+/* ════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
   .year-cards{ grid-template-columns: repeat(3,1fr); }
+  .corr-grid { grid-template-columns: repeat(2,1fr); }
 }
+
 @media (max-width: 768px) {
   .kpi-grid  { grid-template-columns: repeat(2,1fr); }
   .year-cards{ grid-template-columns: repeat(2,1fr); }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .ep-grid   { grid-template-columns: repeat(2,1fr); }
   .stat-grid { grid-template-columns: repeat(2,1fr); }
+  .avg-grid  { grid-template-columns: repeat(3,1fr); }
 }
+
+/* ── Phone (≤640px): the real mobile pass ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .container { padding: 16px 14px; }
+  .grid-2, .grid-3, .grid-4 { gap: 12px; }
+
+  /* Header: compact, single line */
+  .site-header { padding: 0 16px; height: 54px; gap: 10px; }
+  .logo { gap: 8px; min-width: 0; }
+  .logo-icon { width: 30px; height: 30px; font-size: 11px; flex-shrink: 0; }
+  .logo h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .logo p  { display: none; }
+  .header-badge { flex-shrink: 0; }
+
+  /* Tabs: horizontal scroll, short labels, no wrapping */
+  .tabs-bar {
+    padding: 0 8px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: 1 0 auto;
+    white-space: nowrap;
+    padding: 13px 14px;
+    font-size: 14px;
+    scroll-snap-align: start;
+  }
+  .tab-full  { display: none; }
+  .tab-short { display: inline; }
+
+  /* KPIs / cards single-ish column with breathing room */
+  .kpi-card { padding: 14px 16px; }
+  .kpi-val  { font-size: 26px; }
+  .card { padding: 16px; }
+
+  /* Year selector: bigger touch targets, scrollable row */
+  .year-selector { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .year-selector::-webkit-scrollbar { display: none; }
+  .year-btn { padding: 9px 16px; font-size: 13px; flex-shrink: 0; }
+
+  /* Inputs: 16px to stop iOS auto-zoom; stacked controls */
+  .table-controls { flex-direction: column; }
+  .table-controls input, .table-controls select { font-size: 16px; padding: 11px 12px; width: 100%; }
+
+  /* Correlations & tranches stack nicely */
+  .corr-grid    { grid-template-columns: repeat(2,1fr); }
+  .avg-grid     { grid-template-columns: repeat(2,1fr); }
+  .ep-year-grid { grid-template-columns: 1fr; }
+  .tranche-label { width: 120px; font-size: 12px; }
+
+  /* ── Student table → stacked cards ─────────────────────────────────────────── */
+  .table-wrap { max-height: none; border: none; overflow: visible; }
+  .table-wrap table, .table-wrap thead, .table-wrap tbody,
+  .table-wrap tr, .table-wrap td { display: block; width: 100%; }
+  .table-wrap thead { display: none; }
+  .table-wrap tr {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .table-wrap td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f1f3f5;
+    text-align: right !important;
+    font-size: 13px;
+  }
+  .table-wrap td:last-child { border-bottom: none; }
+  .table-wrap td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: left;
+  }
+  .table-wrap tr:hover td { background: transparent; }
+  .table-wrap .score-wrap { justify-content: flex-end; }
+}
+
+/* ── Custom Modal & Toggle Styles ────────────────────────────────────────── */
+.toggle-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-btn:hover {
+  opacity: 0.95;
+  filter: brightness(0.98);
+}
+.toggle-btn.active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+  padding: 22px;
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.close-modal-btn {
+  transition: color 0.15s ease;
+}
+.close-modal-btn:hover {
+  color: var(--text) !important;
+}
+
+.bulletin-row {
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.bulletin-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--muted) !important;
+}
+

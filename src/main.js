@@ -6,6 +6,10 @@ const EP_KEYS   = ["fr_ecrit","fr_oral","philo","grand_oral"];
 const EP_LABELS = ["Français écrit","Français oral","Philosophie","Grand oral"];
 const EP_COLORS = ["#2563eb","#10b981","#8b5cf6","#f59e0b"];
 const YEAR_COLORS = { 2022:"#9ca3af", 2023:"#6b7280", 2024:"#8b5cf6", 2025:"#3b82f6", 2026:"#2563eb" };
+const SPEC_KEYS   = ["hggsp","ses","llce","maths","phy_chimie","svt","nsi"];
+const SPEC_LABELS = ["HGGSP","SES","LLCE Anglais","Maths","Physique-Chimie","SVT","NSI"];
+const SPEC_COLORS = ["#7c3aed","#0891b2","#d97706","#1d4ed8","#dc2626","#16a34a","#db2777"];
+const SPEC_YEARS  = [2023, 2024, 2025, 2026];
 
 let activeTab    = "overview";
 let analysisYear = 2026;
@@ -18,18 +22,40 @@ const YEAR_STATS = {};
 YEARS.forEach(y => {
   const d = YEARS_DATA[y];
   YEAR_STATS[y] = {
-    mentions: countMentions(d.eleves),
-    stats:    computeStats(d.eleves),
-    epStats:  computeEpStats(d.eleves),
-    official: OFFICIAL_STATS[y],
+    mentions:  countMentions(d.eleves),
+    stats:     computeStats(d.eleves),
+    epStats:   computeEpStats(d.eleves),
+    specStats: computeSpecStats(d.eleves),
+    official:  OFFICIAL_STATS[y],
   };
 });
+
+function computeSubjectStats(eleves, key) {
+  const vals = eleves.map(e => e[key]).filter(v => v != null).sort((a,b) => a-b);
+  if (!vals.length) return null;
+  const n = vals.length;
+  const avg = vals.reduce((s,v)=>s+v,0)/n;
+  const median = n%2===0 ? (vals[n/2-1]+vals[n/2])/2 : vals[Math.floor(n/2)];
+  const q1 = vals[Math.floor(n/4)];
+  const q3 = vals[Math.floor(n*3/4)];
+  const std = Math.sqrt(vals.reduce((s,v)=>s+(v-avg)**2,0)/n);
+  return { n, avg, median, q1, q3, std, min: vals[0], max: vals[n-1], ge10: vals.filter(v=>v>=10).length };
+}
 
 function computeEpStats(eleves) {
   const out = {};
   EP_KEYS.forEach(k => {
-    const vals = eleves.map(e => e[k]).filter(v => v != null);
-    out[k] = { avg: vals.reduce((a,b)=>a+b,0)/vals.length, min: Math.min(...vals), max: Math.max(...vals) };
+    const s = computeSubjectStats(eleves, k);
+    out[k] = s ?? { avg:0, min:0, max:0, median:0, q1:0, q3:0, std:0, n:0, ge10:0 };
+  });
+  return out;
+}
+
+function computeSpecStats(eleves) {
+  const out = {};
+  SPEC_KEYS.forEach(k => {
+    const s = computeSubjectStats(eleves, k);
+    if (s && s.n > 0) out[k] = s;
   });
   return out;
 }
@@ -45,8 +71,8 @@ function render() {
       <span class="header-badge">2022 → 2026</span>
     </header>
     <nav class="tabs-bar">
-      ${[["overview","Vue d'ensemble"],["analysis","Analyse par année"],["evolution","Évolution & Comparaison"],["eleves","Élèves"]].map(([id,label]) =>
-        `<button class="tab-btn ${activeTab===id?"active":""}" onclick="window._tab('${id}')">${label}</button>`
+      ${[["overview","Vue d'ensemble","Vue"],["analysis","Analyse par année","Analyse"],["evolution","Évolution & Comparaison","Évolution"],["eleves","Élèves","Élèves"]].map(([id,label,short]) =>
+        `<button class="tab-btn ${activeTab===id?"active":""}" onclick="window._tab('${id}')"><span class="tab-full">${label}</span><span class="tab-short">${short}</span></button>`
       ).join("")}
     </nav>
     <div id="tab-content"></div>
@@ -101,8 +127,16 @@ function renderOverview() {
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Épreuves terminales 2026</div>
-      <div class="ep-grid">${renderEpreuves(YEARS_DATA[2026].eleves)}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px">
+        <div class="card-title" style="margin-bottom:0">Épreuves terminales 2026</div>
+        <div class="toggle-container" style="display:flex; background:var(--bg); padding:2px; border-radius:8px">
+          <button class="toggle-btn active" id="btn-tronc" onclick="window._toggleOverviewEpreuves('tronc')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:var(--surface); color:var(--text); box-shadow:var(--shadow)">Tronc commun</button>
+          <button class="toggle-btn" id="btn-spe" onclick="window._toggleOverviewEpreuves('spe')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:transparent; color:var(--muted)">Spécialités</button>
+        </div>
+      </div>
+      <div id="overview-epreuves-container" class="ep-grid">
+        ${renderEpreuves(YEARS_DATA[2026].eleves)}
+      </div>
     </div>
 
     <div class="card">
@@ -249,9 +283,14 @@ function renderAnalysis() {
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Analyse détaillée des épreuves terminales — ${y}</div>
-      <div class="ep-grid">${renderEpreuvesDetailed(eleves)}</div>
+      <div class="card-title">Statistiques détaillées par épreuve — ${y}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">${renderEpreuvesFullStats(eleves)}</div>
     </div>
+
+    ${SPEC_YEARS.includes(y) ? `<div class="card mb16">
+      <div class="card-title">Enseignements de spécialité — ${y}</div>
+      ${renderSpecStats(y)}
+    </div>` : ''}
 
     <div class="card mb16">
       <div class="card-title">Corrélations avec la moyenne générale — ${y}</div>
@@ -301,26 +340,112 @@ function renderBoxPlot(st, domMin, domMax) {
   </div>`;
 }
 
-function renderEpreuvesDetailed(eleves) {
+function miniStat(lbl, val, color) {
+  return `<div style="text-align:center;background:var(--surface);border-radius:6px;padding:8px 4px">
+    <div style="font-size:14px;font-weight:700;color:${color}">${val}</div>
+    <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:2px">${lbl}</div>
+  </div>`;
+}
+
+function renderEpreuvesFullStats(eleves) {
   return EP_KEYS.map((k, i) => {
-    const vals = eleves.map(e=>e[k]).filter(v=>v!=null).sort((a,b)=>a-b);
-    if (!vals.length) return "";
-    const n   = vals.length;
-    const avg = vals.reduce((a,b)=>a+b,0)/n;
-    const med = n%2===0?(vals[n/2-1]+vals[n/2])/2:vals[Math.floor(n/2)];
-    const ge10 = vals.filter(v=>v>=10).length;
-    return `<div class="ep-card">
-      <div class="ep-name">${EP_LABELS[i]}</div>
-      <div class="ep-score" style="color:${EP_COLORS[i]}">${avg.toFixed(2)}<span>/20</span></div>
-      <div class="ep-sub">Médiane: ${med.toFixed(1)} · Min: ${vals[0]} · Max: ${vals[n-1]}</div>
-      <div class="ep-sub">≥10/20 : ${ge10}/${n} (${(ge10/n*100).toFixed(0)}%)</div>
-      <div class="ep-bar-bg"><div class="ep-bar-fill" style="width:${avg/20*100}%;background:${EP_COLORS[i]}"></div></div>
+    const s = computeSubjectStats(eleves, k);
+    if (!s) return "";
+    return `<div style="background:var(--bg);border-radius:10px;padding:16px 18px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:${EP_COLORS[i]};text-transform:uppercase;letter-spacing:.5px;flex:1">${EP_LABELS[i]}</div>
+        <div style="font-size:22px;font-weight:800;color:${EP_COLORS[i]}">${s.avg.toFixed(2)}<span style="font-size:12px;font-weight:400;color:var(--muted)">/20</span></div>
+      </div>
+      <div class="ep-mini-grid">
+        ${miniStat('Médiane', s.median.toFixed(2), EP_COLORS[i])}
+        ${miniStat('Éc.-type', s.std.toFixed(2), '#6b7280')}
+        ${miniStat('Q1', s.q1.toFixed(1), '#3b82f6')}
+        ${miniStat('Q3', s.q3.toFixed(1), '#3b82f6')}
+        ${miniStat('Min', s.min, '#ef4444')}
+        ${miniStat('Max', s.max, '#10b981')}
+        ${miniStat('≥10/20', `${s.ge10}/${s.n}`, EP_COLORS[i])}
+        ${miniStat('Taux', `${(s.ge10/s.n*100).toFixed(0)}%`, s.ge10/s.n>=.8?'#10b981':'#f59e0b')}
+      </div>
+      ${renderBoxPlot(s, 0, 20)}
     </div>`;
   }).join("");
 }
 
+function renderSpecStats(year) {
+  const ss = YEAR_STATS[year].specStats;
+  const keys = SPEC_KEYS.filter(k => ss[k]);
+  if (!keys.length) return `<p style="color:var(--muted);font-size:12px">Aucune donnée de spécialité disponible.</p>`;
+  return renderSpecAveragesChart(year) + `<div style="display:flex;flex-direction:column;gap:12px">` +
+    keys.map(k => {
+      const i = SPEC_KEYS.indexOf(k);
+      const s = ss[k];
+      return `<div style="background:var(--bg);border-radius:10px;padding:16px 18px">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:${SPEC_COLORS[i]};text-transform:uppercase;letter-spacing:.5px;flex:1">${SPEC_LABELS[i]}</div>
+          <div style="font-size:11px;color:var(--muted)">${s.n} élève${s.n>1?'s':''}</div>
+          <div style="font-size:22px;font-weight:800;color:${SPEC_COLORS[i]}">${s.avg.toFixed(2)}<span style="font-size:12px;font-weight:400;color:var(--muted)">/20</span></div>
+        </div>
+        <div class="ep-mini-grid">
+          ${miniStat('Médiane', s.median.toFixed(1), SPEC_COLORS[i])}
+          ${miniStat('Éc.-type', s.std.toFixed(2), '#6b7280')}
+          ${miniStat('Q1', s.q1.toFixed(1), '#3b82f6')}
+          ${miniStat('Q3', s.q3.toFixed(1), '#3b82f6')}
+          ${miniStat('Min', s.min, '#ef4444')}
+          ${miniStat('Max', s.max, '#10b981')}
+          ${miniStat('≥10/20', `${s.ge10}/${s.n}`, SPEC_COLORS[i])}
+          ${miniStat('Taux', `${(s.ge10/s.n*100).toFixed(0)}%`, s.ge10/s.n>=.8?'#10b981':'#f59e0b')}
+        </div>
+        ${renderBoxPlot(s, 0, 20)}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function renderSpecComparison() {
+  const keys = SPEC_KEYS.filter(k => SPEC_YEARS.some(y => YEAR_STATS[y].specStats[k]));
+  if (!keys.length) return '';
+  return `<div class="ep-year-grid">` +
+    keys.map(k => {
+      const i = SPEC_KEYS.indexOf(k);
+      const data = SPEC_YEARS.map(y => ({ y, s: YEAR_STATS[y].specStats[k] })).filter(d => d.s);
+      const maxAvg = Math.max(...data.map(d => d.s.avg));
+      return `<div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:${SPEC_COLORS[i]}">${SPEC_LABELS[i]}</div>
+        <div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:4px">
+          ${data.map((d, j) => {
+            const h = Math.max(8, Math.round(d.s.avg/maxAvg*58));
+            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%">
+              <div style="font-size:9px;font-weight:700;color:${SPEC_COLORS[i]}">${d.s.avg.toFixed(1)}</div>
+              <div style="width:80%;height:${h}px;background:${SPEC_COLORS[i]};border-radius:3px 3px 0 0;opacity:${data.length > 1 ? (0.4 + j * (0.6 / (data.length - 1))).toFixed(2) : 1.0}"></div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          ${data.map(d => `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">${d.y}</div>`).join('')}
+        </div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Année</th>
+            <th style="text-align:center;padding:4px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">n</th>
+            <th style="text-align:center;padding:4px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Moy.</th>
+            <th style="text-align:center;padding:4px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">σ</th>
+            <th style="text-align:center;padding:4px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">≥10%</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(d => `<tr>
+              <td style="padding:4px 6px;font-weight:700;color:${YEAR_COLORS[d.y]};border-bottom:1px solid var(--border)">${d.y}</td>
+              <td style="padding:4px 6px;text-align:center;color:var(--muted);border-bottom:1px solid var(--border)">${d.s.n}</td>
+              <td style="padding:4px 6px;text-align:center;font-weight:700;color:${SPEC_COLORS[i]};border-bottom:1px solid var(--border)">${d.s.avg.toFixed(2)}</td>
+              <td style="padding:4px 6px;text-align:center;color:var(--muted);border-bottom:1px solid var(--border)">${d.s.std.toFixed(2)}</td>
+              <td style="padding:4px 6px;text-align:center;border-bottom:1px solid var(--border);color:${d.s.ge10/d.s.n>=.8?'#10b981':'#f59e0b'}">${(d.s.ge10/d.s.n*100).toFixed(0)}%</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).join('') + '</div>';
+}
+
 function renderCorrelations(eleves) {
-  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">` +
+  return `<div class="corr-grid">` +
     EP_KEYS.map((k, i) => {
       const pairs = eleves.filter(e=>e[k]!=null && e.score!=null).map(e=>({x:e[k],y:e.score}));
       const xAvg  = pairs.reduce((a,b)=>a+b.x,0)/pairs.length;
@@ -359,8 +484,8 @@ function renderTranches(eleves) {
         return t.max===99 ? e.score>=t.min : e.score>=t.min && e.score<t.max;
       }).length;
       const pct = (n/total*100).toFixed(1);
-      return `<div style="display:flex;align-items:center;gap:12px;font-size:13px">
-        <div style="width:185px;color:${t.color};font-weight:600">${t.l}</div>
+      return `<div class="tranche-row">
+        <div class="tranche-label" style="color:${t.color}">${t.l}</div>
         <div style="flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${t.color};border-radius:5px"></div>
         </div>
@@ -368,6 +493,50 @@ function renderTranches(eleves) {
         <div style="width:40px;color:var(--muted);font-size:11px">${pct}%</div>
       </div>`;
     }).join("") + `</div>`;
+}
+
+function renderEpreuvesParAnnee() {
+  return `<div class="ep-year-grid">` +
+    EP_KEYS.map((k, i) => {
+      const avgs = YEARS.map(y => YEAR_STATS[y].epStats[k].avg);
+      const maxAvg = Math.max(...avgs);
+      return `<div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:${EP_COLORS[i]}">${EP_LABELS[i]}</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:4px">
+          ${YEARS.map((y, j) => {
+            const h = Math.max(8, Math.round(avgs[j]/maxAvg*58));
+            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%">
+              <div style="font-size:9px;font-weight:700;color:${EP_COLORS[i]}">${avgs[j].toFixed(1)}</div>
+              <div style="width:80%;height:${h}px;background:${EP_COLORS[i]};border-radius:3px 3px 0 0;opacity:${(0.45+j*0.14).toFixed(2)}"></div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:4px;margin-bottom:12px">
+          ${YEARS.map(y => `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">${y}</div>`).join('')}
+        </div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Année</th>
+            <th style="text-align:center;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Moy.</th>
+            <th style="text-align:center;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">σ</th>
+            <th style="text-align:center;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Méd.</th>
+            <th style="text-align:center;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">≥10%</th>
+          </tr></thead>
+          <tbody>
+            ${YEARS.map(y => {
+              const s = YEAR_STATS[y].epStats[k];
+              return `<tr>
+                <td style="padding:5px 6px;font-weight:700;color:${YEAR_COLORS[y]};border-bottom:1px solid var(--border)">${y}</td>
+                <td style="padding:5px 6px;text-align:center;font-weight:700;color:${EP_COLORS[i]};border-bottom:1px solid var(--border)">${s.avg.toFixed(2)}</td>
+                <td style="padding:5px 6px;text-align:center;color:var(--muted);border-bottom:1px solid var(--border)">${s.std.toFixed(2)}</td>
+                <td style="padding:5px 6px;text-align:center;color:var(--muted);border-bottom:1px solid var(--border)">${s.median.toFixed(1)}</td>
+                <td style="padding:5px 6px;text-align:center;border-bottom:1px solid var(--border);color:${s.ge10/s.n>=.8?'#10b981':'#f59e0b'}">${(s.ge10/s.n*100).toFixed(0)}%</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).join('') + '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -393,6 +562,16 @@ function renderEvolution() {
     <div class="card mb16">
       <div class="card-title">Comparaison des épreuves terminales — toutes promotions</div>
       ${renderEpreuvesComparison()}
+    </div>
+
+    <div class="card mb16">
+      <div class="card-title">Évolution par matière — statistiques 2022–2026</div>
+      ${renderEpreuvesParAnnee()}
+    </div>
+
+    <div class="card mb16">
+      <div class="card-title">Spécialités — comparaison des promotions</div>
+      ${renderSpecComparison()}
     </div>
 
     <div class="card">
@@ -448,7 +627,7 @@ function renderMentionsComparison() {
 
 function renderAvgEvolution() {
   const cols = ["#9ca3af","#6b7280","#8b5cf6","#3b82f6","#2563eb"];
-  return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:8px">` +
+  return `<div class="avg-grid">` +
     YEARS.map((y,i) => {
       const st = YEAR_STATS[y].stats;
       return `<div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
@@ -535,6 +714,12 @@ function renderElevesList() {
           <option value="">Toutes les mentions</option>
           ${MENTION_ORDER.map(k => `<option value="${k}">${MENTION_CONFIG[k].label}</option>`).join("")}
         </select>
+        ${SPEC_YEARS.includes(eleveYear) ? `
+        <select id="filterSpecialty" onchange="window._renderTable()">
+          <option value="">Toutes les spécialités</option>
+          ${SPEC_KEYS.map((k, i) => `<option value="${k}">${SPEC_LABELS[i]}</option>`).join("")}
+        </select>
+        ` : ''}
       </div>
       <div class="table-wrap">
         <table>
@@ -547,6 +732,7 @@ function renderElevesList() {
             <th>Fr. oral</th>
             <th>Philo</th>
             <th>Grand oral</th>
+            ${SPEC_YEARS.includes(eleveYear) ? '<th>Spécialités</th><th>Spé. 1ère</th>' : ''}
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -573,10 +759,12 @@ function renderTable() {
   const eleves = YEARS_DATA[eleveYear].eleves;
   const q  = (document.getElementById("search")?.value||"").toLowerCase();
   const mf = document.getElementById("filterMention")?.value||"";
+  const sf = document.getElementById("filterSpecialty")?.value||"";
   const data = eleves.filter(e => {
     const match   = (e.nom+" "+e.prenom).toLowerCase().includes(q);
     const mention = !mf || getMentionKey(e.resultat)===mf;
-    return match && mention;
+    const spec    = !sf || e[sf] != null;
+    return match && mention && spec;
   }).sort((a,b) => {
     let va=a[sortKey], vb=b[sortKey];
     if (typeof va==="string"){ va=va.toLowerCase(); vb=vb.toLowerCase(); }
@@ -591,18 +779,23 @@ function renderTable() {
     const mk  = getMentionKey(e.resultat);
     const mc  = MENTION_CONFIG[mk];
     const col = scoreColor(e.score);
-    return `<tr>
-      <td><div class="score-wrap">
+    return `<tr onclick="window._showStudentModal('${e.nom.replace(/'/g, "\\'")}', '${e.prenom.replace(/'/g, "\\'")}')" style="cursor:pointer" title="Cliquer pour voir le bulletin individuel">
+      <td data-label="Moyenne"><div class="score-wrap">
         <div class="score-mini-bar" style="width:${(e.score/20*100*0.5).toFixed(0)}px;background:${col}"></div>
         <strong style="color:${col}">${e.score}</strong><span style="font-size:10px;color:var(--muted)">/20</span>
       </div></td>
-      <td><strong>${hl(e.nom)}</strong></td>
-      <td>${hl(e.prenom)}</td>
-      <td><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></td>
-      <td style="text-align:center">${e.fr_ecrit ?? "—"}</td>
-      <td style="text-align:center">${e.fr_oral ?? "—"}</td>
-      <td style="text-align:center">${e.philo ?? "—"}</td>
-      <td style="text-align:center">${e.grand_oral ?? "—"}</td>
+      <td data-label="Nom"><strong>${hl(e.nom)}</strong></td>
+      <td data-label="Prénom">${hl(e.prenom)}</td>
+      <td data-label="Résultat"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></td>
+      <td data-label="Fr. écrit" style="text-align:center">${e.fr_ecrit ?? "—"}</td>
+      <td data-label="Fr. oral" style="text-align:center">${e.fr_oral ?? "—"}</td>
+      <td data-label="Philo" style="text-align:center">${e.philo ?? "—"}</td>
+      <td data-label="Grand oral" style="text-align:center">${e.grand_oral ?? "—"}</td>
+      ${SPEC_YEARS.includes(eleveYear) ? (() => {
+        const specs = SPEC_KEYS.map((k,i) => e[k] != null ? `<span style="color:${SPEC_COLORS[i]};font-weight:600;white-space:nowrap">${SPEC_LABELS[i].replace('Physique-Chimie','Phy-Chim').replace('LLCE Anglais','LLCE')} <strong>${e[k]}</strong></span>` : null).filter(Boolean);
+        return `<td data-label="Spécialités" style="font-size:11px">${specs.join(' · ') || '—'}</td>
+                <td data-label="Spé. 1ère" style="text-align:center;font-size:11px">${e.opt != null ? e.opt : '—'}</td>`;
+      })() : ''}
     </tr>`;
   }).join("");
 }
@@ -613,3 +806,186 @@ function scoreColor(s) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 render();
+
+// ── Helper functions for specialties and student modals ───────────────────────
+
+function renderOverviewSpecialties(eleves) {
+  return SPEC_KEYS.map((k, i) => {
+    const vals = eleves.map(e => e[k]).filter(v => v != null);
+    if (!vals.length) return "";
+    const a = (vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(2);
+    return `<div class="ep-card">
+      <div class="ep-name" style="color:${SPEC_COLORS[i]};font-weight:700">${SPEC_LABELS[i]}</div>
+      <div class="ep-score" style="color:${SPEC_COLORS[i]}">${a}<span>/20</span></div>
+      <div class="ep-sub">Min ${Math.min(...vals)} · Max ${Math.max(...vals)} · ${vals.length} élève${vals.length>1?'s':''}</div>
+      <div class="ep-bar-bg"><div class="ep-bar-fill" style="width:${a/20*100}%;background:${SPEC_COLORS[i]}"></div></div>
+    </div>`;
+  }).join("");
+}
+
+window._toggleOverviewEpreuves = (type) => {
+  const container = document.getElementById("overview-epreuves-container");
+  const btnTronc = document.getElementById("btn-tronc");
+  const btnSpe = document.getElementById("btn-spe");
+  if (!container || !btnTronc || !btnSpe) return;
+  if (type === 'tronc') {
+    container.innerHTML = renderEpreuves(YEARS_DATA[2026].eleves);
+    btnTronc.className = "toggle-btn active";
+    btnSpe.className = "toggle-btn";
+    btnTronc.style.background = "var(--surface)";
+    btnTronc.style.color = "var(--accent)";
+    btnTronc.style.boxShadow = "var(--shadow)";
+    btnSpe.style.background = "transparent";
+    btnSpe.style.color = "var(--muted)";
+    btnSpe.style.boxShadow = "none";
+  } else {
+    container.innerHTML = renderOverviewSpecialties(YEARS_DATA[2026].eleves);
+    btnSpe.className = "toggle-btn active";
+    btnTronc.className = "toggle-btn";
+    btnSpe.style.background = "var(--surface)";
+    btnSpe.style.color = "var(--accent)";
+    btnSpe.style.boxShadow = "var(--shadow)";
+    btnTronc.style.background = "transparent";
+    btnTronc.style.color = "var(--muted)";
+    btnTronc.style.boxShadow = "none";
+  }
+};
+
+function renderSpecAveragesChart(year) {
+  const ss = YEAR_STATS[year].specStats;
+  const keys = SPEC_KEYS.filter(k => ss[k]);
+  if (!keys.length) return "";
+  
+  const avgs = keys.map(k => ss[k].avg);
+  const maxAvg = Math.max(...avgs, 1);
+  
+  return `<div class="card-title" style="margin-top:8px; margin-bottom:12px; font-size:10px; color:var(--muted)">Moyennes des enseignements de spécialité</div>
+  <div style="display:flex; flex-direction:column; gap:10px; background:var(--bg); border-radius:10px; padding:16px; margin-bottom:16px">
+    ${keys.map(k => {
+      const idx = SPEC_KEYS.indexOf(k);
+      const s = ss[k];
+      const pct = (s.avg / 20 * 100).toFixed(1);
+      return `
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:110px; font-size:12px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${SPEC_LABELS[idx]}</div>
+          <div style="flex:1; height:12px; background:var(--border); border-radius:6px; overflow:hidden; position:relative">
+            <div style="height:100%; width:${pct}%; background:${SPEC_COLORS[idx]}; border-radius:6px; transition: width .4s"></div>
+          </div>
+          <div style="width:60px; text-align:right; font-size:13px; font-weight:800; color:${SPEC_COLORS[idx]}">${s.avg.toFixed(2)}<span style="font-size:9px; font-weight:400; color:var(--muted)">/20</span></div>
+        </div>
+      `;
+    }).join("")}
+  </div>`;
+}
+
+function renderBulletinRow(label, note, classAvg, color, detail = null) {
+  const studentPct = (note / 20 * 100).toFixed(1);
+  const avgPct = (classAvg / 20 * 100).toFixed(1);
+  return `
+    <div class="bulletin-row" style="display:grid; grid-template-columns: 140px 1fr 50px; align-items:center; gap:12px; background:var(--surface); padding:10px 14px; border-radius:8px; border:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${label}</div>
+        ${detail ? `<div style="font-size:8.5px; color:var(--muted); margin-top:2px; font-style:italic">${detail}</div>` : ""}
+      </div>
+      <div style="height:14px; background:var(--bg); border-radius:7px; position:relative; overflow:visible">
+        <div style="position:absolute; top:0; left:0; height:100%; width:${studentPct}%; background:${color}; border-radius:7px; opacity:0.85"></div>
+        <div style="position:absolute; top:-2px; left:${avgPct}%; width:3px; height:18px; background:#ef4444; border-radius:2px; z-index:2" title="Moyenne de classe: ${classAvg.toFixed(2)}"></div>
+      </div>
+      <div style="text-align:right; font-size:12px; font-weight:800; color:${color}">
+        ${note} <span style="font-size:9px; font-weight:400; color:var(--muted)">/20</span>
+      </div>
+    </div>
+  `;
+}
+
+window._showStudentModal = (nom, prenom) => {
+  const eleves = YEARS_DATA[eleveYear].eleves;
+  const student = eleves.find(e => e.nom === nom && e.prenom === prenom);
+  if (!student) return;
+  
+  const stats = YEAR_STATS[eleveYear];
+  const scoreCol = scoreColor(student.score);
+  const mk = getMentionKey(student.resultat);
+  const mc = MENTION_CONFIG[mk];
+  
+  const rankedList = [...eleves].sort((a,b) => b.score - a.score);
+  const rank = rankedList.findIndex(e => e.nom === nom && e.prenom === prenom) + 1;
+  
+  let modalHtml = `
+    <div id="student-modal" class="modal-overlay" onclick="window._closeStudentModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <header class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <div class="modal-avatar" style="background:${mc.color}; color:#fff; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px">
+              ${prenom.charAt(0)}${nom.charAt(0)}
+            </div>
+            <div>
+              <h2 style="font-size:18px; font-weight:800; color:var(--text); margin-bottom:2px">${prenom} ${nom}</h2>
+              <p style="font-size:12px; color:var(--muted)">Promotion ${eleveYear} · Rang: <strong>${rank}</strong>/${eleves.length}</p>
+            </div>
+          </div>
+          <button class="close-modal-btn" onclick="window._closeStudentModal()" style="border:none; background:none; font-size:28px; color:var(--muted); cursor:pointer; padding:4px; line-height:1">&times;</button>
+        </header>
+        
+        <div class="modal-body" style="max-height:420px; overflow-y:auto; padding-right:4px">
+          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); border-radius:10px; padding:14px 16px; margin-bottom:20px; border:1px solid var(--border)">
+            <div>
+              <span class="badge" style="background:${mc.bg}; color:${mc.text}; font-size:11px; padding:4px 10px">${mc.label}</span>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:24px; font-weight:800; color:${scoreCol}">${student.score}<span style="font-size:12px; font-weight:400; color:var(--muted)">/20</span></div>
+              <div style="font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-top:2px">Moyenne générale</div>
+            </div>
+          </div>
+          
+          <div class="modal-section-title" style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:12px">Détail des notes</div>
+          <div class="bulletin-list" style="display:flex; flex-direction:column; gap:10px">
+            ${EP_KEYS.map((k, idx) => {
+              const note = student[k];
+              if (note == null) return "";
+              const classAvg = stats.epStats[k].avg;
+              const detail = (student.details && student.details[k]) || null;
+              return renderBulletinRow(EP_LABELS[idx], note, classAvg, EP_COLORS[idx], detail);
+            }).join("")}
+            
+            ${SPEC_KEYS.map((k, idx) => {
+              if (student[k] == null) return "";
+              const note = student[k];
+              const classAvg = stats.specStats[k] ? stats.specStats[k].avg : 10;
+              const detail = (student.details && student.details[k]) || null;
+              return renderBulletinRow(SPEC_LABELS[idx], note, classAvg, SPEC_COLORS[idx], detail);
+            }).join("")}
+            
+            ${student.opt != null ? renderBulletinRow("Spé. de 1ère (abandonnée)", student.opt, 11.65, "#6b7280") : ""}
+          </div>
+          
+          <div style="display:flex; gap:16px; margin-top:20px; font-size:11px; color:var(--muted); justify-content:center">
+            <span style="display:flex; align-items:center; gap:5px"><span style="display:inline-block; width:12px; height:8px; border-radius:2px; background:var(--accent)"></span>Note de l'élève</span>
+            <span style="display:flex; align-items:center; gap:5px"><span style="display:inline-block; width:2px; height:8px; background:#ef4444"></span>Moyenne de classe</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const div = document.createElement("div");
+  div.id = "modal-container";
+  div.innerHTML = modalHtml;
+  document.body.appendChild(div);
+  document.body.style.overflow = "hidden";
+  
+  window._modalEscHandler = (e) => {
+    if (e.key === "Escape") window._closeStudentModal();
+  };
+  window.addEventListener("keydown", window._modalEscHandler);
+};
+
+window._closeStudentModal = (e) => {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const container = document.getElementById("modal-container");
+  if (container) {
+    container.remove();
+  }
+  document.body.style.overflow = "";
+  window.removeEventListener("keydown", window._modalEscHandler);
+};
