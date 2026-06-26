@@ -1,0 +1,165 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.site-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 10; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 13px; letter-spacing: -.5px; }
+.logo h1 { font-size: 15px; font-weight: 700; }
+.logo p  { font-size: 12px; color: var(--muted); }
+.header-badge { background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────────── */
+.tabs-bar { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; gap: 2px; }
+.tab-btn { padding: 14px 18px; font-size: 13px; font-weight: 500; color: var(--muted); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+.mb16 { margin-bottom: 16px; }
+
+/* ── Cards ───────────────────────────────────────────────────────────────────── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 16px; }
+.card-note { font-size: 11px; color: var(--muted); margin-top: 10px; font-style: italic; }
+
+/* ── KPIs ────────────────────────────────────────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 16px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.kpi-val { font-size: 28px; font-weight: 800; line-height: 1; }
+.kpi-lbl { font-size: 11px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; }
+.kpi-delta { font-size: 11px; margin-top: 4px; font-weight: 600; }
+.delta-up   { color: #10b981; }
+.delta-down { color: #ef4444; }
+.delta-neu  { color: var(--muted); }
+
+/* ── Year selector ───────────────────────────────────────────────────────────── */
+.year-selector { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.year-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; color: var(--muted); }
+.year-btn:hover { border-color: var(--accent); color: var(--accent); }
+.year-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Year cards (overview) ───────────────────────────────────────────────────── */
+.year-cards { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 16px; }
+.year-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.year-card .yc-year { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.year-card .yc-total { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; margin: 6px 0 2px; }
+.year-card .yc-sub { font-size: 12px; color: var(--muted); }
+.year-card .yc-taux { font-size: 15px; font-weight: 700; margin-top: 8px; }
+.year-card .yc-avg { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.year-card .mention-mini { display: flex; gap: 3px; margin-top: 10px; height: 6px; border-radius: 4px; overflow: hidden; }
+.mention-mini-seg { height: 100%; }
+
+/* ── Evolution chart (custom SVG-free bars) ──────────────────────────────────── */
+.evo-chart { display: flex; align-items: flex-end; gap: 24px; height: 140px; padding: 0 8px; }
+.evo-group { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.evo-bars { display: flex; gap: 3px; align-items: flex-end; height: 100px; }
+.evo-bar { width: 22px; border-radius: 4px 4px 0 0; min-height: 4px; position: relative; }
+.evo-bar:hover::after { content: attr(data-tip); position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 3px 7px; border-radius: 5px; font-size: 10px; white-space: nowrap; pointer-events: none; }
+.evo-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+.evo-legend { display: flex; gap: 12px; justify-content: center; margin-top: 10px; }
+.evo-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.evo-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ── Mention bars ────────────────────────────────────────────────────────────── */
+.mention-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+.mention-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.mention-name { width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mention-bar-wrap { flex: 1; height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.mention-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+.mention-count { width: 22px; text-align: right; font-weight: 700; }
+.mention-pct { width: 34px; text-align: right; color: var(--muted); font-size: 10px; }
+
+/* ── Stats box ───────────────────────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.stat-box { background: var(--bg); border-radius: 8px; padding: 12px; text-align: center; }
+.stat-val { font-size: 20px; font-weight: 800; }
+.stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 3px; }
+
+/* ── Box plot ────────────────────────────────────────────────────────────────── */
+.boxplot-wrap { margin-top: 6px; }
+.boxplot-axis { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-bottom: 4px; }
+.boxplot-svg { width: 100%; height: 44px; }
+
+/* ── Histogram ───────────────────────────────────────────────────────────────── */
+.histo { display: flex; align-items: flex-end; gap: 3px; height: 110px; }
+.histo-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.histo-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; }
+.histo-val { font-size: 9px; font-weight: 600; min-height: 12px; }
+.histo-lbl { font-size: 8px; color: var(--muted); white-space: nowrap; }
+
+/* ── Épreuves ────────────────────────────────────────────────────────────────── */
+.ep-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.ep-card { background: var(--bg); border-radius: 10px; padding: 12px 14px; }
+.ep-name { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.ep-score { font-size: 22px; font-weight: 800; }
+.ep-score span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.ep-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.ep-bar-bg { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+.ep-bar-fill { height: 4px; border-radius: 2px; }
+
+/* ── Comparison table ────────────────────────────────────────────────────────── */
+.cmp-grid { display: grid; grid-template-columns: 160px 1fr 1fr; gap: 0; }
+.cmp-header { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 8px 12px; background: var(--bg); border-bottom: 2px solid var(--border); }
+.cmp-label { font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--muted); }
+.cmp-cell  { font-size: 14px; font-weight: 700; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.cmp-bar-cell { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.cmp-bar-inner { height: 8px; border-radius: 4px; }
+
+/* ── Table ───────────────────────────────────────────────────────────────────── */
+.table-controls { display: flex; gap: 10px; margin-bottom: 14px; }
+.table-controls input, .table-controls select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--surface); color: var(--text); outline: none; }
+.table-controls input { flex: 1; }
+.table-controls input:focus, .table-controls select:focus { border-color: var(--accent); }
+
+.table-wrap { overflow-y: auto; max-height: 380px; border-radius: 8px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { position: sticky; top: 0; background: var(--bg); padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+thead th:hover { color: var(--text); }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f9fafb; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.rank-medal { font-size: 14px; }
+.score-wrap { display: flex; align-items: center; gap: 6px; }
+.score-mini-bar { height: 5px; border-radius: 3px; }
+mark { background: #fef08a; border-radius: 2px; }
+
+/* ── Top students ────────────────────────────────────────────────────────────── */
+.top-list { display: flex; flex-direction: column; gap: 8px; }
+.top-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg); border-radius: 8px; }
+.top-rank { font-size: 16px; width: 28px; text-align: center; }
+.top-info { flex: 1; }
+.top-name { font-size: 13px; font-weight: 600; }
+.top-mention { font-size: 10px; color: var(--muted); }
+.top-score { font-size: 18px; font-weight: 800; }
+
+@media (max-width: 900px) {
+  .year-cards{ grid-template-columns: repeat(3,1fr); }
+}
+@media (max-width: 768px) {
+  .kpi-grid  { grid-template-columns: repeat(2,1fr); }
+  .year-cards{ grid-template-columns: repeat(2,1fr); }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .ep-grid   { grid-template-columns: repeat(2,1fr); }
+  .stat-grid { grid-template-columns: repeat(2,1fr); }
+}
