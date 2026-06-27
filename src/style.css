@@ -21,6 +21,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .logo p  { font-size: 12px; color: var(--muted); }
 .header-badge { background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
 
+/* ── Sélecteur d'examen (global) ─────────────────────────────────────────────── */
+.exam-bar { background: linear-gradient(180deg, var(--surface), var(--bg)); border-bottom: 1px solid var(--border); display: flex; gap: 8px; padding: 10px 24px; flex-wrap: wrap; }
+.exam-btn { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; cursor: pointer; transition: all .15s; box-shadow: var(--shadow); }
+.exam-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+.exam-btn.active { border-color: var(--accent); background: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,.25); }
+.exam-btn.active .exam-btn-short { color: #fff; }
+.exam-btn.active .exam-btn-sub { color: #dbeafe; }
+.exam-btn-icon { font-size: 18px; line-height: 1; }
+.exam-btn-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.exam-btn-short { font-size: 13px; font-weight: 800; color: var(--text); letter-spacing: -.2px; }
+.exam-btn-sub { font-size: 10px; font-weight: 500; color: var(--muted); }
+
 /* ── Tabs ────────────────────────────────────────────────────────────────────── */
 .tabs-bar { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; gap: 2px; }
 .tab-btn { padding: 14px 18px; font-size: 13px; font-weight: 500; color: var(--muted); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
@@ -191,6 +203,13 @@ mark { background: #fef08a; border-radius: 2px; }
   .logo h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .logo p  { display: none; }
   .header-badge { flex-shrink: 0; }
+
+  /* Sélecteur d'examen : compact + scroll horizontal */
+  .exam-bar { padding: 8px 12px; gap: 6px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .exam-bar::-webkit-scrollbar { display: none; }
+  .exam-btn { padding: 6px 12px; gap: 8px; flex-shrink: 0; }
+  .exam-btn-icon { font-size: 16px; }
+  .exam-btn-sub { display: none; }
 
   /* Tabs: horizontal scroll, short labels, no wrapping */
   .tabs-bar {

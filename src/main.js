@@ -1,46 +1,139 @@
-import { YEARS_DATA, OFFICIAL_STATS, getMentionKey, MENTION_CONFIG, computeStats, countMentions } from "./data.js";
+import { EXAMS, EXAM_ORDER } from "./exams/index.js";
+import { computeStats } from "./data.js";
 
-const MENTION_ORDER = ["felicitations","tb","bien","ab","admis","sg","refuse"];
-const YEARS = [2022, 2023, 2024, 2025, 2026];
-const EP_KEYS   = ["fr_ecrit","fr_oral","philo","grand_oral"];
-const EP_LABELS = ["Français écrit","Français oral","Philosophie","Grand oral"];
-const EP_COLORS = ["#2563eb","#10b981","#8b5cf6","#f59e0b"];
-const YEAR_COLORS = { 2022:"#9ca3af", 2023:"#6b7280", 2024:"#8b5cf6", 2025:"#3b82f6", 2026:"#2563eb" };
-const SPEC_KEYS   = ["hggsp","ses","llce","maths","phy_chimie","svt","nsi"];
-const SPEC_LABELS = ["HGGSP","SES","LLCE Anglais","Maths","Physique-Chimie","SVT","NSI"];
-const SPEC_COLORS = ["#7c3aed","#0891b2","#d97706","#1d4ed8","#dc2626","#16a34a","#db2777"];
-const SPEC_YEARS  = [2023, 2024, 2025, 2026];
+// ── État de l'examen actif ────────────────────────────────────────────────────
+let activeExam = localStorage.getItem("lfjp_active_exam");
+if (!activeExam || !EXAMS[activeExam]) activeExam = "bac";
+
+// Constantes dérivées de l'examen actif — réassignées par loadExam()
+let EXAM, YEARS, YEAR_COLORS, DATA_YEARS;
+let EP_KEYS, EP_LABELS, EP_COLORS, EP_SHORT, EP_YEARS;
+let SPEC_KEYS, SPEC_LABELS, SPEC_SHORT, SPEC_COLORS, SPEC_YEARS;
+let MENTION_ORDER, MENTION_CONFIG, getMentionKey;
+let YEARS_DATA, OFFICIAL_STATS, YEAR_STATS;
 
 let activeTab    = "overview";
-let analysisYear = 2026;
-let eleveYear    = 2026;
+let analysisYear, eleveYear;
 let sortKey      = "score";
 let sortAsc      = false;
 
 // État de l'accès administrateur
-let isAdmin = localStorage.getItem("lfjp_bac_admin") === "true";
+let isAdmin = localStorage.getItem("lfjp_admin") === "true";
+
+// ── Chargement d'un examen : (ré)initialise toutes les constantes dérivées ─────
+function loadExam(id) {
+  activeExam = id;
+  localStorage.setItem("lfjp_active_exam", id);
+  EXAM = EXAMS[id];
+
+  YEARS       = EXAM.years;
+  YEAR_COLORS = EXAM.yearColors;
+
+  EP_KEYS   = EXAM.epreuves.map(e => e.key);
+  EP_LABELS = EXAM.epreuves.map(e => e.label);
+  EP_SHORT  = EXAM.epreuves.map(e => e.short || e.label);
+  EP_COLORS = EXAM.epreuves.map(e => e.color);
+  EP_YEARS  = EXAM.epreuves.map(e => e.years || null); // null = épreuve commune à toutes les années
+
+  SPEC_KEYS   = EXAM.specialites.map(s => s.key);
+  SPEC_LABELS = EXAM.specialites.map(s => s.label);
+  SPEC_SHORT  = EXAM.specialites.map(s => s.short || s.label);
+  SPEC_COLORS = EXAM.specialites.map(s => s.color);
+  SPEC_YEARS  = EXAM.specYears || [];
+
+  MENTION_ORDER = EXAM.mentions.order;
+  MENTION_CONFIG = EXAM.mentions.config;
+  getMentionKey  = EXAM.mentions.classify;
+
+  YEARS_DATA = {};
+  YEARS.forEach(y => { YEARS_DATA[y] = { eleves: EXAM.data[y] || [] }; });
+
+  // Années réellement renseignées (les graphiques pluriannuels les utilisent pour
+  // éviter qu'une promotion encore vide — ex. l'année en cours — ne casse le rendu).
+  DATA_YEARS = YEARS.filter(y => (YEARS_DATA[y].eleves || []).length > 0);
+
+  OFFICIAL_STATS = {};
+  buildYearStats();
+
+  // On ouvre Analyse / Élèves sur la dernière promotion renseignée (et non sur
+  // une année à venir encore vide).
+  const latest = DATA_YEARS.length ? DATA_YEARS[DATA_YEARS.length - 1] : YEARS[YEARS.length - 1];
+  analysisYear = latest;
+  eleveYear    = latest;
+  sortKey = "score";
+  sortAsc = false;
+}
+
+// Bascule vers un autre examen (depuis le sélecteur global)
+window._exam = (id) => {
+  if (id === activeExam || !EXAMS[id]) return;
+  activeTab = "overview";
+  loadExam(id);
+  render();
+};
+
+// ── Helpers liés à l'examen actif ─────────────────────────────────────────────
+function latestYear() { return YEARS[YEARS.length - 1]; }
+function latestDataYear() { return DATA_YEARS.length ? DATA_YEARS[DATA_YEARS.length - 1] : YEARS[YEARS.length - 1]; }
+function prevDataYear(y) { const i = DATA_YEARS.indexOf(y); return i > 0 ? DATA_YEARS[i - 1] : null; }
+function yearRange()  { return DATA_YEARS.length ? `${DATA_YEARS[0]}–${DATA_YEARS[DATA_YEARS.length - 1]}` : "—"; }
+function examHasData() { return DATA_YEARS.length > 0; }
+function yearHasData(y) { return (YEARS_DATA[y]?.eleves || []).length > 0; }
+
+// Une épreuve peut n'exister que certaines années (ex. les maths EA en 2026).
+function epActiveYear(i, y) { return !EP_YEARS[i] || EP_YEARS[i].includes(y); }
+function epIdxsForYear(y) { return EP_KEYS.map((_, i) => i).filter(i => epActiveYear(i, y)); }
+function epHasData(i) { return DATA_YEARS.some(y => epActiveYear(i, y) && (YEAR_STATS[y]?.epStats[EP_KEYS[i]]?.n || 0) > 0); }
+function epIdxsWithData() { return EP_KEYS.map((_, i) => i).filter(epHasData); }
+
+function countMentions(eleves) {
+  return Object.fromEntries(MENTION_ORDER.map(k => [k, eleves.filter(e => getMentionKey(e.resultat) === k).length]));
+}
+
+function deriveOfficial(eleves, stats) {
+  const total = eleves.length;
+  const admis = eleves.filter(e => {
+    const k = getMentionKey(e.resultat);
+    return k !== "refuse" && k !== "sg";
+  }).length;
+  return { total, admis, taux: total ? admis / total * 100 : 0, avg: stats ? stats.avg : 0 };
+}
+
+function buildYearStats() {
+  YEAR_STATS = {};
+  YEARS.forEach(y => {
+    const eleves = YEARS_DATA[y].eleves;
+    const stats  = computeStats(eleves);
+    OFFICIAL_STATS[y] = EXAM.official?.[y] || deriveOfficial(eleves, stats);
+    YEAR_STATS[y] = {
+      mentions:  countMentions(eleves),
+      stats,
+      epStats:   computeEpStats(eleves),
+      specStats: computeSpecStats(eleves),
+      official:  OFFICIAL_STATS[y],
+    };
+  });
+}
+
+function emptyState(title) {
+  return `<div class="container"><div class="card" style="text-align:center;padding:48px 24px">
+    <div style="font-size:40px;margin-bottom:12px">📊</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${title}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6">Aucune donnée n'est encore disponible pour l'examen «&nbsp;${EXAM.label}&nbsp;».<br>Les résultats seront ajoutés prochainement.</div>
+  </div></div>`;
+}
 
 function getStudentDisplayName(e) {
+  const prenom = (e.prenom || "").trim();
   if (isAdmin) {
-    return { nom: e.nom, prenom: e.prenom };
+    return { nom: e.nom, prenom };
   }
-  const firstPrenom = e.prenom.trim().split(" ")[0];
+  // Promotions sans prénom au classeur (ex. EA 2021) : on affiche le nom seul.
+  if (!prenom) return { nom: e.nom, prenom: "" };
+  const firstPrenom = prenom.split(" ")[0];
   const lastInitial = e.nom.trim().charAt(0).toUpperCase();
   return { nom: lastInitial + ".", prenom: firstPrenom };
 }
-
-// ── Pre-compute per-year stats ────────────────────────────────────────────────
-const YEAR_STATS = {};
-YEARS.forEach(y => {
-  const d = YEARS_DATA[y];
-  YEAR_STATS[y] = {
-    mentions:  countMentions(d.eleves),
-    stats:     computeStats(d.eleves),
-    epStats:   computeEpStats(d.eleves),
-    specStats: computeSpecStats(d.eleves),
-    official:  OFFICIAL_STATS[y],
-  };
-});
 
 function computeSubjectStats(eleves, key) {
   const vals = eleves.map(e => e[key]).filter(v => v != null).sort((a,b) => a-b);
@@ -77,17 +170,26 @@ function render() {
   document.getElementById("app").innerHTML = `
     <header class="site-header">
       <div class="logo">
-        <div class="logo-icon">BAC</div>
-        <div><h1>Résultats Baccalauréat — LFJP Saly</h1><p>Lycée Français Jacques Prévert · Analyse pluriannuelle 2022–2026</p></div>
+        <div class="logo-icon">${EXAM.short}</div>
+        <div><h1>Résultats ${EXAM.label} — LFJP Saly</h1><p>Lycée Français Jacques Prévert · ${EXAM.niveau} · Analyse pluriannuelle ${yearRange()}</p></div>
       </div>
       <div style="display:flex; align-items:center; gap:12px">
-        <span class="header-badge">2022 → 2026</span>
-        ${isAdmin 
+        <span class="header-badge">${YEARS.length ? `${YEARS[0]} → ${YEARS[YEARS.length-1]}` : ""}</span>
+        ${isAdmin
           ? `<button class="admin-btn logout" onclick="window._logout()"><span class="admin-btn-icon">🔓</span> <span class="admin-btn-text">Se déconnecter</span></button>`
           : `<button class="admin-btn login" onclick="window._showLoginModal()"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Accès Admin</span></button>`
         }
       </div>
     </header>
+    <nav class="exam-bar">
+      ${EXAM_ORDER.map(id => {
+        const ex = EXAMS[id];
+        return `<button class="exam-btn ${activeExam===id?"active":""}" onclick="window._exam('${id}')">
+          <span class="exam-btn-icon">${ex.emoji||""}</span>
+          <span class="exam-btn-text"><span class="exam-btn-short">${ex.short}</span><span class="exam-btn-sub">${ex.label}</span></span>
+        </button>`;
+      }).join("")}
+    </nav>
     ${isAdmin ? `
       <div class="admin-banner">
         🛡️ Mode Administrateur activé — Données nominatives visibles
@@ -119,51 +221,63 @@ function renderTab() {
 // TAB 1 — VUE D'ENSEMBLE
 // ═══════════════════════════════════════════════════════════════════════════════
 function renderOverview() {
-  const s26   = YEAR_STATS[2026];
-  const s25   = YEAR_STATS[2025];
-  const off26 = OFFICIAL_STATS[2026];
-  const off25 = OFFICIAL_STATS[2025];
-  const deltaAvg  = (s26.stats.avg - s25.stats.avg).toFixed(2);
-  const deltaTaux = (off26.taux - off25.taux).toFixed(1);
+  if (!examHasData()) return emptyState("Vue d'ensemble — " + EXAM.label);
+
+  const ly  = latestDataYear();
+  const py  = prevDataYear(ly);
+  const s26   = YEAR_STATS[ly];
+  const off26 = OFFICIAL_STATS[ly];
+  const s25   = py ? YEAR_STATS[py] : null;
+  const off25 = py ? OFFICIAL_STATS[py] : null;
+  const deltaAvg  = s25 && s25.stats ? (s26.stats.avg - s25.stats.avg).toFixed(2) : null;
+  const deltaTaux = off25 ? (off26.taux - off25.taux).toFixed(1) : null;
+  const hasSpec   = SPEC_KEYS.length > 0;
 
   return `<div class="container">
     <div class="kpi-grid">
-      ${kpi(off26.total, "Candidats 2026", "#2563eb", null, "candidats")}
-      ${kpi(off26.admis, "Admis 2026", "#10b981", null, "admis")}
-      ${kpi(off26.taux.toFixed(1)+"%", "Taux de réussite", "#10b981", deltaSign(deltaTaux)+" vs 2025", "taux")}
-      ${kpi(s26.stats.avg.toFixed(2), "Moyenne générale", "#f59e0b", deltaSign(deltaAvg)+" vs 2025", "avg")}
+      ${kpi(off26.total, "Candidats " + ly, "#2563eb", null, "candidats")}
+      ${kpi(off26.admis, activeExam === "ea" ? "Moyennes ≥ 10/20 " + ly : "Admis " + ly, "#10b981", null, "admis")}
+      ${kpi(off26.taux.toFixed(1)+"%", activeExam === "ea" ? "Taux ≥ 10/20" : "Taux de réussite", "#10b981", deltaTaux!=null ? deltaSign(deltaTaux)+" vs "+py : null, "taux")}
+      ${kpi(s26.stats.avg.toFixed(2), "Moyenne générale", "#f59e0b", deltaAvg!=null ? deltaSign(deltaAvg)+" vs "+py : null, "avg")}
       ${kpi(s26.stats.max, "Meilleure note", "#8b5cf6", null, "minmax")}
     </div>
 
     <div class="card-title" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Résultats par année <span class="info-btn" onclick="window._showHelpModal('yc_overview')">?</span></div>
-    <div class="year-cards mb16">${YEARS.map(y => renderYearCard(y)).join("")}</div>
+    <div class="year-cards mb16">${DATA_YEARS.map(y => renderYearCard(y)).join("")}</div>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Répartition des mentions — 2026 <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
-        ${renderMentionBars(YEARS_DATA[2026].eleves, off26.total)}
+    ${activeExam === "ea" ? `
+      <div class="card mb16">
+        <div class="card-title">Distribution des moyennes — ${ly} <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
+        ${renderHistogram(YEARS_DATA[ly].eleves)}
       </div>
-      <div class="card">
-        <div class="card-title">Distribution des moyennes — 2026 <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
-        ${renderHistogram(YEARS_DATA[2026].eleves)}
+    ` : `
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Répartition des mentions — ${ly} <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
+          ${renderMentionBars(YEARS_DATA[ly].eleves, off26.total)}
+        </div>
+        <div class="card">
+          <div class="card-title">Distribution des moyennes — ${ly} <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
+          ${renderHistogram(YEARS_DATA[ly].eleves)}
+        </div>
       </div>
-    </div>
+    `}
 
     <div class="card mb16">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px">
-        <div class="card-title" style="margin-bottom:0">Épreuves terminales 2026 <span class="info-btn" onclick="window._showHelpModal('epreuves')">?</span></div>
-        <div class="toggle-container" style="display:flex; background:var(--bg); padding:2px; border-radius:8px">
+        <div class="card-title" style="margin-bottom:0">Épreuves ${ly} <span class="info-btn" onclick="window._showHelpModal('epreuves')">?</span></div>
+        ${hasSpec ? `<div class="toggle-container" style="display:flex; background:var(--bg); padding:2px; border-radius:8px">
           <button class="toggle-btn active" id="btn-tronc" onclick="window._toggleOverviewEpreuves('tronc')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:var(--surface); color:var(--text); box-shadow:var(--shadow)">Tronc commun</button>
           <button class="toggle-btn" id="btn-spe" onclick="window._toggleOverviewEpreuves('spe')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:transparent; color:var(--muted)">Spécialités</button>
-        </div>
+        </div>` : ""}
       </div>
       <div id="overview-epreuves-container" class="ep-grid">
-        ${renderEpreuves(YEARS_DATA[2026].eleves)}
+        ${renderEpreuves(YEARS_DATA[ly].eleves)}
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Top 5 — Promotion 2026</div>
+      <div class="card-title">Top 5 — Promotion ${ly}</div>
       <div class="top-list">${renderTop5()}</div>
     </div>
   </div>`;
@@ -196,9 +310,9 @@ function renderYearCard(y) {
   return `<div class="year-card">
     <div class="yc-year">${y}</div>
     <div class="yc-total">${off.total}<span style="font-size:13px;color:var(--muted);font-weight:400"> candidats</span></div>
-    <div class="yc-taux" style="color:${tColor}">${off.taux.toFixed(1)}% de réussite</div>
+    <div class="yc-taux" style="color:${tColor}">${off.taux.toFixed(1)}% ${activeExam === "ea" ? "≥ 10/20" : "de réussite"}</div>
     <div class="yc-avg">Moy. <strong>${ys.stats.avg.toFixed(2)}/20</strong></div>
-    <div class="mention-mini">${segs}</div>
+    ${activeExam !== "ea" ? `<div class="mention-mini">${segs}</div>` : ""}
   </div>`;
 }
 
@@ -249,7 +363,7 @@ function renderEpreuves(eleves) {
 }
 
 function renderTop5() {
-  const top = [...YEARS_DATA[2026].eleves].sort((a,b) => b.score-a.score).slice(0,5);
+  const top = [...YEARS_DATA[latestDataYear()].eleves].sort((a,b) => b.score-a.score).slice(0,5);
   const medals = ["🥇","🥈","🥉","4","5"];
   return top.map((e,i) => {
     const mk = getMentionKey(e.resultat);
@@ -259,7 +373,7 @@ function renderTop5() {
       <div class="top-rank">${medals[i]}</div>
       <div class="top-info">
         <div class="top-name">${display.prenom} ${display.nom}</div>
-        <div class="top-mention"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></div>
+        ${activeExam !== "ea" ? `<div class="top-mention"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></div>` : ""}
       </div>
       <div class="top-score" style="color:${scoreColor(e.score)}">${e.score}<span style="font-size:12px;color:var(--muted)">/20</span></div>
     </div>`;
@@ -271,14 +385,24 @@ function renderTop5() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function renderAnalysis() {
   const y      = analysisYear;
+  const yearSelector = `<div class="year-selector">
+      ${YEARS.map(yr => `<button class="year-btn ${yr===y?"active":""}" onclick="window._analysisYear(${yr})">${yr}</button>`).join("")}
+    </div>`;
+
+  if (!yearHasData(y)) {
+    return `<div class="container">${yearSelector}<div class="card" style="text-align:center;padding:40px 24px">
+      <div style="font-size:36px;margin-bottom:10px">📊</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">Aucune donnée pour ${y}</div>
+      <div style="font-size:13px;color:var(--muted)">Les résultats de l'examen «&nbsp;${EXAM.label}&nbsp;» pour cette promotion seront ajoutés prochainement.</div>
+    </div></div>`;
+  }
+
   const eleves = YEARS_DATA[y].eleves.filter(e => e.score != null);
   const st     = YEAR_STATS[y].stats;
   const off    = OFFICIAL_STATS[y];
 
   return `<div class="container">
-    <div class="year-selector">
-      ${YEARS.map(yr => `<button class="year-btn ${yr===y?"active":""}" onclick="window._analysisYear(${yr})">${yr}</button>`).join("")}
-    </div>
+    ${yearSelector}
 
     <div class="grid-2 mb16">
       <div class="card">
@@ -302,8 +426,10 @@ function renderAnalysis() {
         <div class="card-title">Distribution des notes — ${y} <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
         ${renderHistogram(eleves)}
         <div class="card-note">Répartition des ${eleves.length} candidats par tranche de note</div>
-        <div class="card-title" style="margin-top:16px">Répartition des mentions <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
-        ${renderMentionBars(eleves, off.total)}
+        ${activeExam !== "ea" ? `
+          <div class="card-title" style="margin-top:16px">Répartition des mentions <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
+          ${renderMentionBars(eleves, off.total)}
+        ` : ""}
       </div>
     </div>
 
@@ -474,6 +600,7 @@ function renderCorrelations(eleves) {
   return `<div class="corr-grid">` +
     EP_KEYS.map((k, i) => {
       const pairs = eleves.filter(e=>e[k]!=null && e.score!=null).map(e=>({x:e[k],y:e.score}));
+      if (pairs.length < 2) return ""; // épreuve sans données pour cette promotion
       const xAvg  = pairs.reduce((a,b)=>a+b.x,0)/pairs.length;
       const yAvg  = pairs.reduce((a,b)=>a+b.y,0)/pairs.length;
       const num   = pairs.reduce((a,b)=>a+(b.x-xAvg)*(b.y-yAvg),0);
@@ -495,7 +622,13 @@ function renderCorrelations(eleves) {
 }
 
 function renderTranches(eleves) {
-  const tranches = [
+  const tranches = activeExam === "ea" ? [
+    {l:"Excellence (≥16)",  min:16, max:99, color:"#f59e0b"},
+    {l:"Très bien (14–16)", min:14, max:16, color:"#10b981"},
+    {l:"Bien (12–14)",      min:12, max:14, color:"#3b82f6"},
+    {l:"Satisfaisant (10–12)",  min:10, max:12, color:"#8b5cf6"},
+    {l:"Fragile (<10)",       min:0,  max:10, color:"#ef4444"},
+  ] : [
     {l:"Excellence (≥16)",  min:16, max:99, color:"#f59e0b"},
     {l:"Très bien (14–16)", min:14, max:16, color:"#10b981"},
     {l:"Bien (12–14)",      min:12, max:14, color:"#3b82f6"},
@@ -523,13 +656,15 @@ function renderTranches(eleves) {
 
 function renderEpreuvesParAnnee() {
   return `<div class="ep-year-grid">` +
-    EP_KEYS.map((k, i) => {
-      const avgs = YEARS.map(y => YEAR_STATS[y].epStats[k].avg);
+    epIdxsWithData().map((i) => {
+      const k = EP_KEYS[i];
+      const yrs = DATA_YEARS.filter(y => epActiveYear(i, y) && YEAR_STATS[y].epStats[k].n > 0);
+      const avgs = yrs.map(y => YEAR_STATS[y].epStats[k].avg);
       const maxAvg = Math.max(...avgs);
       return `<div class="card" style="margin-bottom:0">
         <div class="card-title" style="color:${EP_COLORS[i]}">${EP_LABELS[i]}</div>
         <div style="display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:4px">
-          ${YEARS.map((y, j) => {
+          ${yrs.map((y, j) => {
             const h = Math.max(8, Math.round(avgs[j]/maxAvg*58));
             return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%">
               <div style="font-size:9px;font-weight:700;color:${EP_COLORS[i]}">${avgs[j].toFixed(1)}</div>
@@ -538,7 +673,7 @@ function renderEpreuvesParAnnee() {
           }).join('')}
         </div>
         <div style="display:flex;gap:4px;margin-bottom:12px">
-          ${YEARS.map(y => `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">${y}</div>`).join('')}
+          ${yrs.map(y => `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);font-weight:600">${y}</div>`).join('')}
         </div>
         <table style="width:100%;font-size:11px;border-collapse:collapse">
           <thead><tr>
@@ -549,7 +684,7 @@ function renderEpreuvesParAnnee() {
             <th style="text-align:center;padding:5px 6px;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">≥10%</th>
           </tr></thead>
           <tbody>
-            ${YEARS.map(y => {
+            ${yrs.map(y => {
               const s = YEAR_STATS[y].epStats[k];
               return `<tr>
                 <td style="padding:5px 6px;font-weight:700;color:${YEAR_COLORS[y]};border-bottom:1px solid var(--border)">${y}</td>
@@ -569,19 +704,22 @@ function renderEpreuvesParAnnee() {
 // TAB 3 — ÉVOLUTION PLURIANNUELLE
 // ═══════════════════════════════════════════════════════════════════════════════
 function renderEvolution() {
+  if (!examHasData()) return emptyState("Évolution & comparaison — " + EXAM.label);
   return `<div class="container">
     <div class="card mb16">
-      <div class="card-title">Évolution du taux de réussite — 2022–2026 <span class="info-btn" onclick="window._showHelpModal('taux')">?</span></div>
+      <div class="card-title">${activeExam === "ea" ? "Évolution du taux ≥ 10/20" : "Évolution du taux de réussite"} — ${yearRange()} <span class="info-btn" onclick="window._showHelpModal('taux')">?</span></div>
       ${renderTauxChart()}
     </div>
 
+    ${activeExam !== "ea" ? `
     <div class="card mb16">
       <div class="card-title">Répartition des mentions par année <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
       ${renderMentionsComparison()}
     </div>
+    ` : ""}
 
     <div class="card mb16">
-      <div class="card-title">Évolution de la moyenne générale — 2022–2026 <span class="info-btn" onclick="window._showHelpModal('avg')">?</span></div>
+      <div class="card-title">Évolution de la moyenne générale — ${yearRange()} <span class="info-btn" onclick="window._showHelpModal('avg')">?</span></div>
       ${renderAvgEvolution()}
     </div>
 
@@ -591,7 +729,7 @@ function renderEvolution() {
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Évolution par matière — statistiques 2022–2026 <span class="info-btn" onclick="window._showHelpModal('stats_details')">?</span></div>
+      <div class="card-title">Évolution par matière — statistiques ${yearRange()} <span class="info-btn" onclick="window._showHelpModal('stats_details')">?</span></div>
       ${renderEpreuvesParAnnee()}
     </div>
 
@@ -608,7 +746,7 @@ function renderEvolution() {
 }
 
 function renderTauxChart() {
-  const data = YEARS.map(y => ({ y, taux: OFFICIAL_STATS[y].taux, admis: OFFICIAL_STATS[y].admis, total: OFFICIAL_STATS[y].total }));
+  const data = DATA_YEARS.map(y => ({ y, taux: OFFICIAL_STATS[y].taux, admis: OFFICIAL_STATS[y].admis, total: OFFICIAL_STATS[y].total }));
   return `<div style="display:flex;align-items:flex-end;gap:24px;height:160px;padding:0 24px;margin-top:8px">` +
     data.map(d => {
       const h   = Math.max(4, d.taux/100*120);
@@ -623,9 +761,9 @@ function renderTauxChart() {
 }
 
 function renderMentionsComparison() {
-  const active = MENTION_ORDER.filter(k => YEARS.some(y => YEAR_STATS[y].mentions[k] > 0));
+  const active = MENTION_ORDER.filter(k => DATA_YEARS.some(y => YEAR_STATS[y].mentions[k] > 0));
   return `<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">` +
-    YEARS.map(y => {
+    DATA_YEARS.map(y => {
       const m     = YEAR_STATS[y].mentions;
       const total = OFFICIAL_STATS[y].total;
       const segs  = active.map(k => {
@@ -652,13 +790,13 @@ function renderMentionsComparison() {
 }
 
 function renderAvgEvolution() {
-  const cols = ["#9ca3af","#6b7280","#8b5cf6","#3b82f6","#2563eb"];
+  const cols = ["#9ca3af","#6b7280","#8b5cf6","#3b82f6","#2563eb","#1d4ed8"];
   return `<div class="avg-grid">` +
-    YEARS.map((y,i) => {
+    DATA_YEARS.map((y,i) => {
       const st = YEAR_STATS[y].stats;
       return `<div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${y}</div>
-        <div style="font-size:28px;font-weight:800;margin:8px 0;color:${cols[i]}">${st.avg.toFixed(2)}</div>
+        <div style="font-size:28px;font-weight:800;margin:8px 0;color:${cols[i] || "#2563eb"}">${st.avg.toFixed(2)}</div>
         <div style="font-size:10px;color:var(--muted)">σ = ${st.std.toFixed(2)}</div>
         <div style="font-size:10px;color:var(--muted)">Mé = ${st.median.toFixed(2)}</div>
       </div>`;
@@ -666,38 +804,48 @@ function renderAvgEvolution() {
 }
 
 function renderEpreuvesComparison() {
-  const n = YEARS.map(y => YEARS_DATA[y].eleves.length);
+  const yrs = DATA_YEARS;
+  const n = yrs.map(y => YEARS_DATA[y].eleves.length);
+  const first = yrs[0], last = yrs[yrs.length - 1];
+  const last2 = String(first).slice(2) + "→" + String(last).slice(2);
+  const genFirst = YEAR_STATS[first].stats ? YEAR_STATS[first].stats.avg : 0;
+  const genLast  = YEAR_STATS[last].stats  ? YEAR_STATS[last].stats.avg  : 0;
   return `<div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>
         <tr>
           <th style="padding:8px 12px;text-align:left;font-weight:700;color:var(--muted);text-transform:uppercase;font-size:10px;border-bottom:2px solid var(--border)">Épreuve</th>
-          ${YEARS.map((y,i) => `<th style="padding:8px 12px;text-align:center;font-weight:700;color:${YEAR_COLORS[y]};border-bottom:2px solid var(--border)">${y}<br><span style="font-size:9px;font-weight:400">n=${n[i]}</span></th>`).join("")}
-          <th style="padding:8px 12px;text-align:center;font-weight:700;color:#10b981;border-bottom:2px solid var(--border)">Δ 22→26</th>
+          ${yrs.map((y,i) => `<th style="padding:8px 12px;text-align:center;font-weight:700;color:${YEAR_COLORS[y]};border-bottom:2px solid var(--border)">${y}<br><span style="font-size:9px;font-weight:400">n=${n[i]}</span></th>`).join("")}
+          <th style="padding:8px 12px;text-align:center;font-weight:700;color:#10b981;border-bottom:2px solid var(--border)">Δ ${last2}</th>
         </tr>
       </thead>
       <tbody>
-        ${EP_KEYS.map((k,i) => {
-          const avgs  = YEARS.map(y => YEAR_STATS[y].epStats[k].avg);
-          const delta = (avgs[4]-avgs[0]).toFixed(2);
+        ${epIdxsWithData().map((i) => {
+          const k = EP_KEYS[i];
+          const active = yrs.filter(y => epActiveYear(i, y) && YEAR_STATS[y].epStats[k].n > 0);
+          const aFirst = active[0], aLast = active[active.length - 1];
+          const delta = (YEAR_STATS[aLast].epStats[k].avg - YEAR_STATS[aFirst].epStats[k].avg).toFixed(2);
           const dColor = parseFloat(delta)>=0?"#10b981":"#ef4444";
           return `<tr>
             <td style="padding:9px 12px;font-weight:600;border-bottom:1px solid var(--border)">${EP_LABELS[i]}</td>
-            ${avgs.map((a,j) => {
-              const col = YEAR_COLORS[YEARS[j]];
-              return `<td style="padding:9px 12px;text-align:center;font-weight:700;color:${col};border-bottom:1px solid var(--border)">${a.toFixed(2)}</td>`;
+            ${yrs.map((y) => {
+              const col = YEAR_COLORS[y];
+              const s = YEAR_STATS[y].epStats[k];
+              const cell = (epActiveYear(i, y) && s.n > 0) ? s.avg.toFixed(2) : "—";
+              return `<td style="padding:9px 12px;text-align:center;font-weight:700;color:${col};border-bottom:1px solid var(--border)">${cell}</td>`;
             }).join("")}
-            <td style="padding:9px 12px;text-align:center;font-weight:700;color:${dColor};border-bottom:1px solid var(--border)">${parseFloat(delta)>=0?"+":""}${delta}</td>
+            <td style="padding:9px 12px;text-align:center;font-weight:700;color:${dColor};border-bottom:1px solid var(--border)">${active.length>1?(parseFloat(delta)>=0?"+":"")+delta:"—"}</td>
           </tr>`;
         }).join("")}
         <tr style="background:var(--bg)">
           <td style="padding:9px 12px;font-weight:700">Moyenne générale</td>
-          ${YEARS.map((y,j) => {
+          ${yrs.map((y) => {
             const col = YEAR_COLORS[y];
-            return `<td style="padding:9px 12px;text-align:center;font-weight:700;color:${col}">${YEAR_STATS[y].stats.avg.toFixed(2)}</td>`;
+            const av = YEAR_STATS[y].stats ? YEAR_STATS[y].stats.avg : 0;
+            return `<td style="padding:9px 12px;text-align:center;font-weight:700;color:${col}">${av.toFixed(2)}</td>`;
           }).join("")}
-          <td style="padding:9px 12px;text-align:center;font-weight:700;color:${(YEAR_STATS[2026].stats.avg-YEAR_STATS[2022].stats.avg)>=0?"#10b981":"#ef4444"}">
-            ${(YEAR_STATS[2026].stats.avg-YEAR_STATS[2022].stats.avg)>=0?"+":""}${(YEAR_STATS[2026].stats.avg-YEAR_STATS[2022].stats.avg).toFixed(2)}
+          <td style="padding:9px 12px;text-align:center;font-weight:700;color:${(genLast-genFirst)>=0?"#10b981":"#ef4444"}">
+            ${(genLast-genFirst)>=0?"+":""}${(genLast-genFirst).toFixed(2)}
           </td>
         </tr>
       </tbody>
@@ -707,7 +855,7 @@ function renderEpreuvesComparison() {
 
 function renderBoxplotsComparison() {
   return `<div style="display:flex;flex-direction:column;gap:20px;margin-top:8px">` +
-    YEARS.map(y => {
+    DATA_YEARS.map(y => {
       const st = YEAR_STATS[y].stats;
       return `<div style="display:flex;align-items:center;gap:16px">
         <div style="width:38px;font-size:12px;font-weight:700;color:${YEAR_COLORS[y]}">${y}</div>
@@ -728,19 +876,31 @@ function renderBoxplotsComparison() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function renderElevesList() {
   const eleves = YEARS_DATA[eleveYear].eleves;
-  return `<div class="container">
-    <div class="year-selector">
+  const showSpec = SPEC_KEYS.length > 0 && SPEC_YEARS.includes(eleveYear);
+  const showOpt  = EXAM.optField && SPEC_YEARS.includes(eleveYear);
+  const yearSelector = `<div class="year-selector">
       ${YEARS.map(y => `<button class="year-btn ${y===eleveYear?"active":""}" onclick="window._eleveYear(${y})">${y}</button>`).join("")}
-    </div>
+    </div>`;
+
+  if (!eleves.length) {
+    return `<div class="container">${yearSelector}<div class="card" style="text-align:center;padding:40px 24px">
+      <div style="font-size:36px;margin-bottom:10px">📋</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">Aucun candidat enregistré pour ${eleveYear}</div>
+      <div style="font-size:13px;color:var(--muted)">Les résultats de l'examen «&nbsp;${EXAM.label}&nbsp;» seront ajoutés prochainement.</div>
+    </div></div>`;
+  }
+
+  return `<div class="container">
+    ${yearSelector}
     <div class="card">
       <div class="card-title">Liste complète — Promotion ${eleveYear} (${eleves.length} candidats) <span class="info-btn" onclick="window._showHelpModal('eleves_list')">?</span></div>
       <div class="table-controls">
         <input type="text" id="search" placeholder="Rechercher un élève…" oninput="window._renderTable()" />
         <select id="filterMention" onchange="window._renderTable()">
-          <option value="">Toutes les mentions</option>
+          <option value="">${activeExam === "ea" ? "Tous les paliers" : "Toutes les mentions"}</option>
           ${MENTION_ORDER.map(k => `<option value="${k}">${MENTION_CONFIG[k].label}</option>`).join("")}
         </select>
-        ${SPEC_YEARS.includes(eleveYear) ? `
+        ${showSpec ? `
         <select id="filterSpecialty" onchange="window._renderTable()">
           <option value="">Toutes les spécialités</option>
           ${SPEC_KEYS.map((k, i) => `<option value="${k}">${SPEC_LABELS[i]}</option>`).join("")}
@@ -753,12 +913,10 @@ function renderElevesList() {
             <th onclick="window._sort('score')">Moy ${sortKey==="score"?(sortAsc?"↑":"↓"):""}</th>
             <th onclick="window._sort('nom')">Nom ${sortKey==="nom"?(sortAsc?"↑":"↓"):""}</th>
             <th>Prénom</th>
-            <th>Résultat</th>
-            <th>Fr. écrit</th>
-            <th>Fr. oral</th>
-            <th>Philo</th>
-            <th>Grand oral</th>
-            ${SPEC_YEARS.includes(eleveYear) ? '<th>Spécialités</th><th>Spé. 1ère</th>' : ''}
+            <th>${activeExam === "ea" ? "Palier" : "Résultat"}</th>
+            ${epIdxsForYear(eleveYear).map(i => `<th>${EP_SHORT[i]}</th>`).join("")}
+            ${showSpec ? '<th>Spécialités</th>' : ''}
+            ${showOpt ? `<th>${EXAM.optField.short}</th>` : ''}
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -782,6 +940,8 @@ function bindTable() {
 }
 
 function renderTable() {
+  const tbody = document.getElementById("tbody");
+  if (!tbody) return; // pas de tableau (état vide)
   const eleves = YEARS_DATA[eleveYear].eleves;
   const q  = (document.getElementById("search")?.value||"").toLowerCase();
   const mf = document.getElementById("filterMention")?.value||"";
@@ -803,7 +963,10 @@ function renderTable() {
     ? String(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi"), "<mark>$1</mark>")
     : str;
 
-  document.getElementById("tbody").innerHTML = data.map(e => {
+  const showSpec = SPEC_KEYS.length > 0 && SPEC_YEARS.includes(eleveYear);
+  const showOpt  = EXAM.optField && SPEC_YEARS.includes(eleveYear);
+
+  tbody.innerHTML = data.map(e => {
     const mk  = getMentionKey(e.resultat);
     const mc  = MENTION_CONFIG[mk];
     const col = scoreColor(e.score);
@@ -815,16 +978,13 @@ function renderTable() {
       </div></td>
       <td data-label="Nom"><strong>${hl(display.nom)}</strong></td>
       <td data-label="Prénom">${hl(display.prenom)}</td>
-      <td data-label="Résultat"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></td>
-      <td data-label="Fr. écrit" style="text-align:center">${e.fr_ecrit ?? "—"}</td>
-      <td data-label="Fr. oral" style="text-align:center">${e.fr_oral ?? "—"}</td>
-      <td data-label="Philo" style="text-align:center">${e.philo ?? "—"}</td>
-      <td data-label="Grand oral" style="text-align:center">${e.grand_oral ?? "—"}</td>
-      ${SPEC_YEARS.includes(eleveYear) ? (() => {
-        const specs = SPEC_KEYS.map((k,i) => e[k] != null ? `<span style="color:${SPEC_COLORS[i]};font-weight:600;white-space:nowrap">${SPEC_LABELS[i].replace('Physique-Chimie','Phy-Chim').replace('LLCE Anglais','LLCE')} <strong>${e[k]}</strong></span>` : null).filter(Boolean);
-        return `<td data-label="Spécialités" style="font-size:11px">${specs.join(' · ') || '—'}</td>
-                <td data-label="Spé. 1ère" style="text-align:center;font-size:11px">${e.opt != null ? e.opt : '—'}</td>`;
+      <td data-label="${activeExam === "ea" ? "Palier" : "Résultat"}"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></td>
+      ${epIdxsForYear(eleveYear).map(i => `<td data-label="${EP_SHORT[i]}" style="text-align:center">${e[EP_KEYS[i]] ?? "—"}</td>`).join("")}
+      ${showSpec ? (() => {
+        const specs = SPEC_KEYS.map((k,i) => e[k] != null ? `<span style="color:${SPEC_COLORS[i]};font-weight:600;white-space:nowrap">${SPEC_SHORT[i]} <strong>${e[k]}</strong></span>` : null).filter(Boolean);
+        return `<td data-label="Spécialités" style="font-size:11px">${specs.join(' · ') || '—'}</td>`;
       })() : ''}
+      ${showOpt ? `<td data-label="${EXAM.optField.short}" style="text-align:center;font-size:11px">${e[EXAM.optField.key] != null ? e[EXAM.optField.key] : '—'}</td>` : ''}
     </tr>`;
   }).join("");
 }
@@ -834,6 +994,7 @@ function scoreColor(s) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+loadExam(activeExam);
 render();
 
 // ── Helper functions for specialties and student modals ───────────────────────
@@ -858,7 +1019,7 @@ window._toggleOverviewEpreuves = (type) => {
   const btnSpe = document.getElementById("btn-spe");
   if (!container || !btnTronc || !btnSpe) return;
   if (type === 'tronc') {
-    container.innerHTML = renderEpreuves(YEARS_DATA[2026].eleves);
+    container.innerHTML = renderEpreuves(YEARS_DATA[latestDataYear()].eleves);
     btnTronc.className = "toggle-btn active";
     btnSpe.className = "toggle-btn";
     btnTronc.style.background = "var(--surface)";
@@ -868,7 +1029,7 @@ window._toggleOverviewEpreuves = (type) => {
     btnSpe.style.color = "var(--muted)";
     btnSpe.style.boxShadow = "none";
   } else {
-    container.innerHTML = renderOverviewSpecialties(YEARS_DATA[2026].eleves);
+    container.innerHTML = renderOverviewSpecialties(YEARS_DATA[latestDataYear()].eleves);
     btnSpe.className = "toggle-btn active";
     btnTronc.className = "toggle-btn";
     btnSpe.style.background = "var(--surface)";
@@ -987,7 +1148,7 @@ window._showStudentModal = (nom, prenom) => {
               return renderBulletinRow(SPEC_LABELS[idx], note, classAvg, SPEC_COLORS[idx], detail);
             }).join("")}
             
-            ${student.opt != null ? renderBulletinRow("Spé. de 1ère (abandonnée)", student.opt, 11.65, "#6b7280") : ""}
+            ${EXAM.optField && student[EXAM.optField.key] != null ? renderBulletinRow(EXAM.optField.label, student[EXAM.optField.key], EXAM.optField.classAvg ?? 11, "#6b7280") : ""}
           </div>
           
           <div style="display:flex; gap:16px; margin-top:20px; font-size:11px; color:var(--muted); justify-content:center">
@@ -1084,7 +1245,7 @@ window._submitLogin = (e) => {
   const errorMsg = document.getElementById("login-error-msg");
   
   if (user === "admin" && pass === "admin") {
-    localStorage.setItem("lfjp_bac_admin", "true");
+    localStorage.setItem("lfjp_admin", "true");
     isAdmin = true;
     window._closeLoginModal();
     render();
@@ -1097,7 +1258,7 @@ window._submitLogin = (e) => {
 };
 
 window._logout = () => {
-  localStorage.removeItem("lfjp_bac_admin");
+  localStorage.removeItem("lfjp_admin");
   isAdmin = false;
   render();
 };
@@ -1354,8 +1515,28 @@ const HELP_DATA = {
 };
 
 window._showHelpModal = (id) => {
-  const data = HELP_DATA[id];
+  let data = HELP_DATA[id] ? { ...HELP_DATA[id] } : null;
   if (!data) return;
+
+  if (activeExam === "ea") {
+    if (id === "admis") {
+      data.title = "Candidats avec moyenne ≥ 10/20";
+      data.body = `
+        <p><strong>Utilité :</strong> Indique le nombre de candidats ayant obtenu une moyenne générale supérieure ou égale à 10/20 aux épreuves anticipées.</p>
+        <p style="margin-top:10px"><strong>Calcul :</strong> Comptage des élèves dont la moyenne finale (score) est supérieure ou égale à 10.</p>
+      `;
+    } else if (id === "taux") {
+      data.title = "Taux avec moyenne ≥ 10/20";
+      data.body = `
+        <p><strong>Utilité :</strong> Proportion d'élèves ayant obtenu une moyenne générale supérieure ou égale à 10/20 parmi l'ensemble des candidats présentés aux épreuves anticipées.</p>
+        <p style="margin-top:10px"><strong>Calcul :</strong>
+          <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+            Taux (%) = (Nombre d'élèves ≥ 10/20 / Nombre total de Candidats) &times; 100
+          </div>
+        </p>
+      `;
+    }
+  }
 
   const modalHtml = `
     <div id="help-modal" class="modal-overlay" onclick="window._closeHelpModal(event)">
