@@ -128,30 +128,30 @@ function renderOverview() {
 
   return `<div class="container">
     <div class="kpi-grid">
-      ${kpi(off26.total, "Candidats 2026", "#2563eb")}
-      ${kpi(off26.admis, "Admis 2026", "#10b981")}
-      ${kpi(off26.taux.toFixed(1)+"%", "Taux de réussite", "#10b981", deltaSign(deltaTaux)+" vs 2025")}
-      ${kpi(s26.stats.avg.toFixed(2), "Moyenne générale", "#f59e0b", deltaSign(deltaAvg)+" vs 2025")}
-      ${kpi(s26.stats.max, "Meilleure note", "#8b5cf6")}
+      ${kpi(off26.total, "Candidats 2026", "#2563eb", null, "candidats")}
+      ${kpi(off26.admis, "Admis 2026", "#10b981", null, "admis")}
+      ${kpi(off26.taux.toFixed(1)+"%", "Taux de réussite", "#10b981", deltaSign(deltaTaux)+" vs 2025", "taux")}
+      ${kpi(s26.stats.avg.toFixed(2), "Moyenne générale", "#f59e0b", deltaSign(deltaAvg)+" vs 2025", "avg")}
+      ${kpi(s26.stats.max, "Meilleure note", "#8b5cf6", null, "minmax")}
     </div>
 
-    <div class="card-title" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Résultats par année</div>
+    <div class="card-title" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Résultats par année <span class="info-btn" onclick="window._showHelpModal('yc_overview')">?</span></div>
     <div class="year-cards mb16">${YEARS.map(y => renderYearCard(y)).join("")}</div>
 
     <div class="grid-2">
       <div class="card">
-        <div class="card-title">Répartition des mentions — 2026</div>
+        <div class="card-title">Répartition des mentions — 2026 <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
         ${renderMentionBars(YEARS_DATA[2026].eleves, off26.total)}
       </div>
       <div class="card">
-        <div class="card-title">Distribution des moyennes — 2026</div>
+        <div class="card-title">Distribution des moyennes — 2026 <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
         ${renderHistogram(YEARS_DATA[2026].eleves)}
       </div>
     </div>
 
     <div class="card mb16">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px">
-        <div class="card-title" style="margin-bottom:0">Épreuves terminales 2026</div>
+        <div class="card-title" style="margin-bottom:0">Épreuves terminales 2026 <span class="info-btn" onclick="window._showHelpModal('epreuves')">?</span></div>
         <div class="toggle-container" style="display:flex; background:var(--bg); padding:2px; border-radius:8px">
           <button class="toggle-btn active" id="btn-tronc" onclick="window._toggleOverviewEpreuves('tronc')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:var(--surface); color:var(--text); box-shadow:var(--shadow)">Tronc commun</button>
           <button class="toggle-btn" id="btn-spe" onclick="window._toggleOverviewEpreuves('spe')" style="border:none; padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; cursor:pointer; background:transparent; color:var(--muted)">Spécialités</button>
@@ -169,9 +169,10 @@ function renderOverview() {
   </div>`;
 }
 
-function kpi(val, lbl, color, delta=null) {
+function kpi(val, lbl, color, delta=null, helpId=null) {
   const cls = delta ? (delta.startsWith("+") ? "delta-up" : "delta-down") : "";
-  return `<div class="kpi-card">
+  return `<div class="kpi-card" style="position:relative">
+    ${helpId ? `<span class="info-btn" onclick="window._showHelpModal('${helpId}')" style="position:absolute;top:10px;right:10px;margin:0">?</span>` : ""}
     <div class="kpi-val" style="color:${color}">${val}</div>
     <div class="kpi-lbl">${lbl}</div>
     ${delta ? `<div class="kpi-delta ${cls}">${delta}</div>` : ""}
@@ -283,46 +284,46 @@ function renderAnalysis() {
       <div class="card">
         <div class="card-title">Statistiques descriptives — Promotion ${y}</div>
         <div class="stat-grid">
-          ${statBox(st.avg.toFixed(2), "Moyenne /20", "#2563eb")}
-          ${statBox(st.median.toFixed(2), "Médiane /20", "#10b981")}
-          ${statBox(st.std.toFixed(2), "Écart-type", "#8b5cf6")}
-          ${statBox(st.min, "Note minimale", "#ef4444")}
-          ${statBox(st.q1.toFixed(2), "1er quartile Q1", "#6b7280")}
-          ${statBox(st.q3.toFixed(2), "3e quartile Q3", "#f59e0b")}
-          ${statBox(st.max, "Note maximale", "#f59e0b")}
-          ${statBox((st.q3-st.q1).toFixed(2), "Étendue inter-Q", "#6b7280")}
-          ${statBox(off.total, "Candidats total", "#2563eb")}
+          ${statBox(st.avg.toFixed(2), "Moyenne /20", "#2563eb", "avg")}
+          ${statBox(st.median.toFixed(2), "Médiane /20", "#10b981", "median")}
+          ${statBox(st.std.toFixed(2), "Écart-type", "#8b5cf6", "std")}
+          ${statBox(st.min, "Note minimale", "#ef4444", "minmax")}
+          ${statBox(st.q1.toFixed(2), "1er quartile Q1", "#6b7280", "quartiles")}
+          ${statBox(st.q3.toFixed(2), "3e quartile Q3", "#f59e0b", "quartiles")}
+          ${statBox(st.max, "Note maximale", "#f59e0b", "minmax")}
+          ${statBox((st.q3-st.q1).toFixed(2), "Étendue inter-Q", "#6b7280", "iqr")}
+          ${statBox(off.total, "Candidats total", "#2563eb", "candidats")}
         </div>
-        <div class="card-title" style="margin-top:16px">Boîte à moustaches</div>
+        <div class="card-title" style="margin-top:16px">Boîte à moustaches <span class="info-btn" onclick="window._showHelpModal('boxplot')">?</span></div>
         ${renderBoxPlot(st, 0, 20)}
       </div>
 
       <div class="card">
-        <div class="card-title">Distribution des notes — ${y}</div>
+        <div class="card-title">Distribution des notes — ${y} <span class="info-btn" onclick="window._showHelpModal('histo')">?</span></div>
         ${renderHistogram(eleves)}
         <div class="card-note">Répartition des ${eleves.length} candidats par tranche de note</div>
-        <div class="card-title" style="margin-top:16px">Répartition des mentions</div>
+        <div class="card-title" style="margin-top:16px">Répartition des mentions <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
         ${renderMentionBars(eleves, off.total)}
       </div>
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Statistiques détaillées par épreuve — ${y}</div>
+      <div class="card-title">Statistiques détaillées par épreuve — ${y} <span class="info-btn" onclick="window._showHelpModal('stats_details')">?</span></div>
       <div style="display:flex;flex-direction:column;gap:12px">${renderEpreuvesFullStats(eleves)}</div>
     </div>
 
     ${SPEC_YEARS.includes(y) ? `<div class="card mb16">
-      <div class="card-title">Enseignements de spécialité — ${y}</div>
+      <div class="card-title">Enseignements de spécialité — ${y} <span class="info-btn" onclick="window._showHelpModal('spec_compare')">?</span></div>
       ${renderSpecStats(y)}
     </div>` : ''}
 
     <div class="card mb16">
-      <div class="card-title">Corrélations avec la moyenne générale — ${y}</div>
+      <div class="card-title">Corrélations avec la moyenne générale — ${y} <span class="info-btn" onclick="window._showHelpModal('correlation')">?</span></div>
       ${renderCorrelations(eleves)}
     </div>
 
     <div class="card">
-      <div class="card-title">Analyse des tranches de performance — ${y}</div>
+      <div class="card-title">Analyse des tranches de performance — ${y} <span class="info-btn" onclick="window._showHelpModal('tranches')">?</span></div>
       ${renderTranches(eleves)}
     </div>
   </div>`;
@@ -336,8 +337,9 @@ function bindAnalysis() {
   };
 }
 
-function statBox(val, lbl, color) {
-  return `<div class="stat-box">
+function statBox(val, lbl, color, helpId=null) {
+  return `<div class="stat-box" style="position:relative">
+    ${helpId ? `<span class="info-btn" onclick="window._showHelpModal('${helpId}')" style="position:absolute;top:6px;right:6px;margin:0;width:12px;height:12px;font-size:8px">?</span>` : ""}
     <div class="stat-val" style="color:${color}">${val}</div>
     <div class="stat-lbl">${lbl}</div>
   </div>`;
@@ -569,37 +571,37 @@ function renderEpreuvesParAnnee() {
 function renderEvolution() {
   return `<div class="container">
     <div class="card mb16">
-      <div class="card-title">Évolution du taux de réussite — 2022–2026</div>
+      <div class="card-title">Évolution du taux de réussite — 2022–2026 <span class="info-btn" onclick="window._showHelpModal('taux')">?</span></div>
       ${renderTauxChart()}
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Répartition des mentions par année</div>
+      <div class="card-title">Répartition des mentions par année <span class="info-btn" onclick="window._showHelpModal('mentions')">?</span></div>
       ${renderMentionsComparison()}
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Évolution de la moyenne générale — 2022–2026</div>
+      <div class="card-title">Évolution de la moyenne générale — 2022–2026 <span class="info-btn" onclick="window._showHelpModal('avg')">?</span></div>
       ${renderAvgEvolution()}
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Comparaison des épreuves terminales — toutes promotions</div>
+      <div class="card-title">Comparaison des épreuves terminales — toutes promotions <span class="info-btn" onclick="window._showHelpModal('epreuves_compare')">?</span></div>
       ${renderEpreuvesComparison()}
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Évolution par matière — statistiques 2022–2026</div>
+      <div class="card-title">Évolution par matière — statistiques 2022–2026 <span class="info-btn" onclick="window._showHelpModal('stats_details')">?</span></div>
       ${renderEpreuvesParAnnee()}
     </div>
 
     <div class="card mb16">
-      <div class="card-title">Spécialités — comparaison des promotions</div>
+      <div class="card-title">Spécialités — comparaison des promotions <span class="info-btn" onclick="window._showHelpModal('spec_compare')">?</span></div>
       ${renderSpecComparison()}
     </div>
 
     <div class="card">
-      <div class="card-title">Distributions comparées — boîtes à moustaches</div>
+      <div class="card-title">Distributions comparées — boîtes à moustaches <span class="info-btn" onclick="window._showHelpModal('boxplot')">?</span></div>
       ${renderBoxplotsComparison()}
     </div>
   </div>`;
@@ -731,7 +733,7 @@ function renderElevesList() {
       ${YEARS.map(y => `<button class="year-btn ${y===eleveYear?"active":""}" onclick="window._eleveYear(${y})">${y}</button>`).join("")}
     </div>
     <div class="card">
-      <div class="card-title">Liste complète — Promotion ${eleveYear} (${eleves.length} candidats)</div>
+      <div class="card-title">Liste complète — Promotion ${eleveYear} (${eleves.length} candidats) <span class="info-btn" onclick="window._showHelpModal('eleves_list')">?</span></div>
       <div class="table-controls">
         <input type="text" id="search" placeholder="Rechercher un élève…" oninput="window._renderTable()" />
         <select id="filterMention" onchange="window._renderTable()">
@@ -1099,3 +1101,285 @@ window._logout = () => {
   isAdmin = false;
   render();
 };
+
+const HELP_DATA = {
+  candidats: {
+    title: "Effectif des candidats",
+    body: `
+      <p><strong>Utilité :</strong> Représente le nombre total d'élèves inscrits aux épreuves de la promotion sélectionnée.</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong> C'est la taille globale de l'échantillon d'élèves pour les statistiques.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Somme totale des élèves figurant dans la base de données pour l'année correspondante.</p>
+    `
+  },
+  admis: {
+    title: "Candidats Admis",
+    body: `
+      <p><strong>Utilité :</strong> Indique le nombre de candidats ayant obtenu leur diplôme du baccalauréat (moyenne générale &ge; 10/20 ou admis après le second groupe).</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong> Permet d'évaluer la réussite quantitative brute.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Comptage des élèves dont le statut de résultat est égal à "Admis" ou ayant obtenu une moyenne finale &ge; 10.</p>
+    `
+  },
+  taux: {
+    title: "Taux de réussite",
+    body: `
+      <p><strong>Utilité :</strong> Proportion d'élèves ayant obtenu leur diplôme parmi l'ensemble des candidats présentés.</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong> C'est l'indicateur clé de performance globale de l'établissement. Plus il est proche de 100%, meilleure est la réussite globale.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          Taux (%) = (Nombre d'Admis / Nombre total de Candidats) &times; 100
+        </div>
+      </p>
+    `
+  },
+  avg: {
+    title: "Moyenne générale",
+    body: `
+      <p><strong>Utilité :</strong> Représente la performance moyenne d'un élève ou d'une promotion.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Une moyenne supérieure à 12/20 indique un bon niveau d'ensemble (équivalent d'une mention Assez Bien). Plus elle est élevée, plus le niveau académique global est fort.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          Moyenne = &Sigma;(Notes) / n
+        </div>
+        Où &Sigma;(Notes) est la somme de toutes les moyennes/notes et n est l'effectif.
+      </p>
+    `
+  },
+  minmax: {
+    title: "Note minimale & maximale",
+    body: `
+      <p><strong>Utilité :</strong> Indique les bornes extrêmes obtenues par la promotion (la moins bonne note et la meilleure note).</p>
+      <p style="margin-top:10px"><strong>Comment les lire :</strong> La note maximale reflète les sommets d'excellence atteints (têtes de classe). La note minimale permet de repérer le seuil de difficulté le plus bas.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          Min = Valeur la plus basse de la série<br>
+          Max = Valeur la plus haute de la série
+        </div>
+      </p>
+    `
+  },
+  median: {
+    title: "Médiane",
+    body: `
+      <p><strong>Utilité :</strong> La médiane sépare les élèves en deux groupes de taille égale : 50% des élèves ont obtenu une note inférieure ou égale à la médiane, et 50% ont une note supérieure ou égale.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Contrairement à la moyenne, la médiane n'est pas influencée par les notes extrêmes. Si la moyenne et la médiane sont très proches, la distribution est symétrique. Si la médiane est plus élevée que la moyenne, cela signifie qu'une majorité d'élèves performe bien, malgré quelques notes très basses qui tirent la moyenne vers le bas.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Classer toutes les notes par ordre croissant. Si l'effectif n est impair, la médiane est la valeur centrale. S'il est pair, c'est la moyenne des deux valeurs du milieu.</p>
+    `
+  },
+  std: {
+    title: "Écart-type (&sigma;)",
+    body: `
+      <p><strong>Utilité :</strong> Mesure la dispersion des notes autour de la moyenne. C'est l'indicateur d'hétérogénéité de la promotion.</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong>
+        <ul style="margin-left:20px; margin-top:6px">
+          <li><strong>Écart-type faible (&lt; 1,5) :</strong> Les notes sont serrées autour de la moyenne. Le groupe est homogène.</li>
+          <li><strong>Écart-type élevé (&gt; 2,5) :</strong> Les notes sont très étalées. Le groupe est hétérogène (grand écart entre les élèves en difficulté et les excellents).</li>
+        </ul>
+      </p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Racine carrée de la moyenne des carrés des écarts à la moyenne :
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          &sigma; = &radic;[ &Sigma;(x - Moyenne)&sup2; / n ]
+        </div>
+      </p>
+    `
+  },
+  quartiles: {
+    title: "Quartiles (Q1 &amp; Q3)",
+    body: `
+      <p><strong>Utilité :</strong> Les quartiles divisent l'ensemble des élèves en quatre groupes de taille égale (contenant chacun 25% des élèves) après les avoir classés par ordre croissant de notes.</p>
+      <p style="margin-top:10px"><strong>Comment les lire :</strong>
+        <ul style="margin-left:20px; margin-top:6px">
+          <li style="margin-bottom:6px"><strong>1er Quartile (Q1) :</strong> C'est le seuil des 25% des élèves ayant obtenu les moins bonnes notes. <strong>25% de la classe a eu une note inférieure ou égale à Q1</strong>, et 75% a eu plus. Il permet d'évaluer le niveau des élèves les plus fragiles.</li>
+          <li><strong>3e Quartile (Q3) :</strong> C'est le seuil à partir duquel on entre dans les 25% des élèves ayant obtenu les meilleures notes. <strong>75% de la classe a eu une note inférieure ou égale à Q3</strong> (et donc 25% a obtenu une note supérieure ou égale à Q3). Il permet d'évaluer le niveau d'excellence (tête de classe).</li>
+        </ul>
+      </p>
+      <p style="margin-top:10px"><strong>💡 L'analogie de la file d'élèves :</strong><br>
+        Imaginez que vous alignez tous les élèves dans la cour, du moins bon au meilleur, et que vous coupez cette file en 4 morceaux égaux :
+        <ul style="margin-left:20px; margin-top:6px">
+          <li>La note au premier quart (25%) correspond à <strong>Q1</strong>.</li>
+          <li>La note au milieu (50%) correspond à la <strong>Médiane</strong>.</li>
+          <li>La note aux trois quarts (75%) correspond à <strong>Q3</strong>.</li>
+        </ul>
+        La zone entre Q1 et Q3 (le rectangle de la boîte à moustaches) contient ainsi exactement les <strong>50% d'élèves du milieu</strong>.
+      </p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Classer les notes par ordre croissant. Q1 correspond à la valeur à l'index (0.25 &times; n) et Q3 à la valeur à l'index (0.75 &times; n) dans la liste ordonnée.</p>
+    `
+  },
+  iqr: {
+    title: "Étendue Interquartile (Inter-Q)",
+    body: `
+      <p><strong>Utilité :</strong> Représente l'écart entre le 3e quartile et le 1er quartile. Il englobe les 50% d'élèves du milieu de la classe.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> C'est une mesure de dispersion robuste. Plus l'étendue est faible, plus le "cœur de classe" a un niveau resserré et homogène.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          Étendue Inter-Q = Q3 - Q1
+        </div>
+      </p>
+    `
+  },
+  boxplot: {
+    title: "Boîte à moustaches (Box Plot)",
+    body: `
+      <p><strong>Utilité :</strong> Graphique qui résume visuellement la répartition d'un ensemble de notes.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong>
+        <ul style="margin-left:20px; margin-top:6px">
+          <li>Le <strong>trait vertical rouge</strong> central représente la <strong>médiane</strong>.</li>
+          <li>Le <strong>bloc bleu</strong> représente la boîte interquartile (contenant les 50% des élèves du milieu, allant de <strong>Q1</strong> à <strong>Q3</strong>).</li>
+          <li>Les <strong>moustaches grises</strong> s'étirent à gauche jusqu'à la note <strong>minimale</strong>, et à droite jusqu'à la note <strong>maximale</strong>.</li>
+        </ul>
+        Ce graphique permet de comparer instantanément la dispersion et la symétrie des notes entre les années ou les matières.
+      </p>
+    `
+  },
+  histo: {
+    title: "Distribution des notes",
+    body: `
+      <p><strong>Utilité :</strong> Affiche graphiquement la répartition des candidats par tranche de notes (ex: moins de 10, de 10 à 11, etc.).</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Permet d'observer la forme générale des notes : y a-t-il une courbe en cloche centrée, ou deux groupes distincts (bimodalité), ou une forte concentration vers le haut ?</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Répartition des élèves dans 10 tranches de notes de taille égale et comptage de l'effectif dans chacune.</p>
+    `
+  },
+  mentions: {
+    title: "Répartition des mentions",
+    body: `
+      <p><strong>Utilité :</strong> Indique le pourcentage d'élèves obtenant chaque type de mention au baccalauréat.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Plus la part de mentions élevées (Très Bien avec Félicitations, Très Bien, Bien) est grande, plus l'excellence académique de l'établissement est marquée.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px">
+          % Mention = (Nombre d'élèves avec cette mention / Nombre total) &times; 100
+        </div>
+      </p>
+    `
+  },
+  epreuves: {
+    title: "Épreuves terminales",
+    body: `
+      <p><strong>Utilité :</strong> Affiche les moyennes obtenues aux matières du tronc commun (Français, Philosophie, Grand Oral) ou de spécialité lors des examens finaux du baccalauréat.</p>
+      <p style="margin-top:10px"><strong>Comment les lire :</strong> Permet de suivre la réussite spécifique matière par matière pour identifier les points forts ou les matières posant le plus de difficultés.</p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Moyenne arithmétique simple des notes obtenues par les élèves à l'examen de cette matière.</p>
+    `
+  },
+  correlation: {
+    title: "Coefficient de corrélation de Pearson (r)",
+    body: `
+      <p><strong>Utilité :</strong> Mesure le lien statistique linéaire entre la note d'une épreuve et la moyenne générale de l'élève. Il indique si une épreuve est représentative du niveau global de l'élève.</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong> Sa valeur est comprise entre -1 et 1 :
+        <ul style="margin-left:20px; margin-top:6px">
+          <li><strong>r proche de 1 (ex: &ge; 0,6) :</strong> Corrélation forte. L'élève qui réussit globalement a généralement une excellente note à cette épreuve. Elle est très prédictive.</li>
+          <li><strong>r moyen (ex: 0,4 à 0,6) :</strong> Corrélation modérée. Lien significatif mais avec des variations individuelles.</li>
+          <li><strong>r faible (ex: &lt; 0,4) :</strong> Corrélation faible ou nulle. La note à l'épreuve n'a aucun lien linéaire avec le niveau général de l'élève (ex: notation très aléatoire, ou compétences très spécifiques non mesurées ailleurs).</li>
+        </ul>
+      </p>
+      <p style="margin-top:10px"><strong>Calcul :</strong>
+        <div style="background:var(--bg); padding:10px; border-radius:6px; font-family:monospace; margin-top:8px; font-size:11px">
+          r = Cov(X, Y) / ( &sigma;_X &times; &sigma;_Y )
+        </div>
+        Où X est la note à l'épreuve, Y la moyenne générale, Cov la covariance, et &sigma; les écarts-types.
+      </p>
+    `
+  },
+  tranches: {
+    title: "Tranches de performance",
+    body: `
+      <p><strong>Utilité :</strong> Regroupe les candidats par grandes catégories de réussite scolaire.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong>
+        <ul style="margin-left:20px; margin-top:6px">
+          <li><strong>Excellence :</strong> Moyenne générale &ge; 16/20 (profils de mentions Très Bien ou Félicitations).</li>
+          <li><strong>Très bien / Bien / Passable :</strong> Tranches de notes intermédiaires.</li>
+          <li><strong>Échec :</strong> Élèves sous la barre de 10/20 (refusés ou devant passer le rattrapage).</li>
+        </ul>
+      </p>
+      <p style="margin-top:10px"><strong>Calcul :</strong> Comptage du nombre et du pourcentage d'élèves entrant dans chaque intervalle de moyenne générale.</p>
+    `
+  },
+  stats_details: {
+    title: "Statistiques détaillées par épreuve",
+    body: `
+      <p><strong>Utilité :</strong> Tableau exhaustif compilant tous les indicateurs statistiques (Moyenne, Médiane, Écart-type, Quartiles, Notes minimales/maximales, et Taux de réussite) pour chaque matière.</p>
+      <p style="margin-top:10px"><strong>Comment le lire :</strong> Permet une analyse fine et comparative : la dispersion (&sigma;), les têtes de classes (Q3, Max), et le taux d'élèves au-dessus de la moyenne (&ge;10/20).</p>
+    `
+  },
+  spec_compare: {
+    title: "Spécialités — Comparaison des promotions",
+    body: `
+      <p><strong>Utilité :</strong> Compare les effectifs (n), les moyennes générales, les écarts-types et le taux d'élèves obtenant plus de 10/20 dans chaque spécialité sur l'ensemble des promotions.</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Permet de repérer les spécialités historiquement fortes, celles qui connaissent des variations d'effectifs, ou des notations variables selon les années.</p>
+    `
+  },
+  epreuves_compare: {
+    title: "Comparaison des épreuves terminales",
+    body: `
+      <p><strong>Utilité :</strong> Permet de confronter les moyennes des matières du tronc commun sur toutes les promotions de 2022 à 2026, avec le calcul de la progression (Δ 22&rarr;26).</p>
+      <p style="margin-top:10px"><strong>Comment la lire :</strong> Un Δ positif indique que les notes dans cette matière se sont améliorées sur 5 ans. Un Δ négatif signale une baisse de niveau ou un durcissement des examens.</p>
+    `
+  },
+  yc_overview: {
+    title: "Résultats annuels",
+    body: `
+      <p><strong>Utilité :</strong> Fiches synthétiques résumant l'effectif, le taux de réussite final, la moyenne de la promotion et la répartition miniature des mentions pour chaque année de 2022 à 2026.</p>
+      <p style="margin-top:10px"><strong>Comment les lire :</strong> Permet de voir instantanément la tendance globale sur plusieurs années sans entrer dans les détails de chaque matière.</p>
+    `
+  },
+  eleves_list: {
+    title: "Liste des élèves",
+    body: `
+      <p><strong>Utilité :</strong> Tableau exhaustif répertoriant tous les candidats d'une promotion avec leurs notes détaillées à chaque épreuve et spécialité.</p>
+      <p style="margin-top:10px"><strong>Comment l'utiliser :</strong>
+        <ul style="margin-left:20px; margin-top:6px">
+          <li><strong>Recherche :</strong> Saisissez un nom ou prénom pour trouver un élève.</li>
+          <li><strong>Tri :</strong> Cliquez sur les entêtes de colonnes (Nom, Moyenne) pour trier.</li>
+          <li><strong>Filtres :</strong> Filtrez par mention obtenue ou spécialité suivie.</li>
+          <li><strong>Détail individuel :</strong> Cliquez sur la ligne d'un élève pour ouvrir son bulletin détaillé avec ses performances par rapport à la moyenne de classe.</li>
+        </ul>
+      </p>
+    `
+  }
+};
+
+window._showHelpModal = (id) => {
+  const data = HELP_DATA[id];
+  if (!data) return;
+
+  const modalHtml = `
+    <div id="help-modal" class="modal-overlay" onclick="window._closeHelpModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <header class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <div style="background:var(--accent); color:#fff; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold">
+              ?
+            </div>
+            <div>
+              <h2 style="font-size:15px; font-weight:800; color:var(--text); line-height:1.2">${data.title}</h2>
+              <p style="font-size:11px; color:var(--muted)">Aide &amp; Méthodologie</p>
+            </div>
+          </div>
+          <button class="close-modal-btn" onclick="window._closeHelpModal()" style="border:none; background:none; font-size:28px; color:var(--muted); cursor:pointer; padding:4px; line-height:1">&times;</button>
+        </header>
+        <div class="modal-body" style="max-height:420px; overflow-y:auto; padding-right:4px; font-size:13px; line-height:1.5; color:var(--text)">
+          ${data.body}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const div = document.createElement("div");
+  div.id = "help-modal-container";
+  div.innerHTML = modalHtml;
+  document.body.appendChild(div);
+  document.body.style.overflow = "hidden";
+
+  window._helpModalEscHandler = (e) => {
+    if (e.key === "Escape") window._closeHelpModal();
+  };
+  window.addEventListener("keydown", window._helpModalEscHandler);
+};
+
+window._closeHelpModal = (e) => {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const container = document.getElementById("help-modal-container");
+  if (container) {
+    container.remove();
+  }
+  document.body.style.overflow = "";
+  window.removeEventListener("keydown", window._helpModalEscHandler);
+};
+
