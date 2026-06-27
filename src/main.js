@@ -17,6 +17,18 @@ let eleveYear    = 2026;
 let sortKey      = "score";
 let sortAsc      = false;
 
+// État de l'accès administrateur
+let isAdmin = localStorage.getItem("lfjp_bac_admin") === "true";
+
+function getStudentDisplayName(e) {
+  if (isAdmin) {
+    return { nom: e.nom, prenom: e.prenom };
+  }
+  const firstPrenom = e.prenom.trim().split(" ")[0];
+  const lastInitial = e.nom.trim().charAt(0).toUpperCase();
+  return { nom: lastInitial + ".", prenom: firstPrenom };
+}
+
 // ── Pre-compute per-year stats ────────────────────────────────────────────────
 const YEAR_STATS = {};
 YEARS.forEach(y => {
@@ -68,8 +80,19 @@ function render() {
         <div class="logo-icon">BAC</div>
         <div><h1>Résultats Baccalauréat — LFJP Saly</h1><p>Lycée Français Jacques Prévert · Analyse pluriannuelle 2022–2026</p></div>
       </div>
-      <span class="header-badge">2022 → 2026</span>
+      <div style="display:flex; align-items:center; gap:12px">
+        <span class="header-badge">2022 → 2026</span>
+        ${isAdmin 
+          ? `<button class="admin-btn logout" onclick="window._logout()"><span class="admin-btn-icon">🔓</span> <span class="admin-btn-text">Se déconnecter</span></button>`
+          : `<button class="admin-btn login" onclick="window._showLoginModal()"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Accès Admin</span></button>`
+        }
+      </div>
     </header>
+    ${isAdmin ? `
+      <div class="admin-banner">
+        🛡️ Mode Administrateur activé — Données nominatives visibles
+      </div>
+    ` : ""}
     <nav class="tabs-bar">
       ${[["overview","Vue d'ensemble","Vue"],["analysis","Analyse par année","Analyse"],["evolution","Évolution & Comparaison","Évolution"],["eleves","Élèves","Élèves"]].map(([id,label,short]) =>
         `<button class="tab-btn ${activeTab===id?"active":""}" onclick="window._tab('${id}')"><span class="tab-full">${label}</span><span class="tab-short">${short}</span></button>`
@@ -230,10 +253,11 @@ function renderTop5() {
   return top.map((e,i) => {
     const mk = getMentionKey(e.resultat);
     const mc = MENTION_CONFIG[mk];
+    const display = getStudentDisplayName(e);
     return `<div class="top-item">
       <div class="top-rank">${medals[i]}</div>
       <div class="top-info">
-        <div class="top-name">${e.prenom} ${e.nom}</div>
+        <div class="top-name">${display.prenom} ${display.nom}</div>
         <div class="top-mention"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></div>
       </div>
       <div class="top-score" style="color:${scoreColor(e.score)}">${e.score}<span style="font-size:12px;color:var(--muted)">/20</span></div>
@@ -761,7 +785,9 @@ function renderTable() {
   const mf = document.getElementById("filterMention")?.value||"";
   const sf = document.getElementById("filterSpecialty")?.value||"";
   const data = eleves.filter(e => {
-    const match   = (e.nom+" "+e.prenom).toLowerCase().includes(q);
+    const display = getStudentDisplayName(e);
+    const match   = (display.nom+" "+display.prenom).toLowerCase().includes(q) ||
+                    (display.prenom+" "+display.nom).toLowerCase().includes(q);
     const mention = !mf || getMentionKey(e.resultat)===mf;
     const spec    = !sf || e[sf] != null;
     return match && mention && spec;
@@ -779,13 +805,14 @@ function renderTable() {
     const mk  = getMentionKey(e.resultat);
     const mc  = MENTION_CONFIG[mk];
     const col = scoreColor(e.score);
+    const display = getStudentDisplayName(e);
     return `<tr onclick="window._showStudentModal('${e.nom.replace(/'/g, "\\'")}', '${e.prenom.replace(/'/g, "\\'")}')" style="cursor:pointer" title="Cliquer pour voir le bulletin individuel">
       <td data-label="Moyenne"><div class="score-wrap">
         <div class="score-mini-bar" style="width:${(e.score/20*100*0.5).toFixed(0)}px;background:${col}"></div>
         <strong style="color:${col}">${e.score}</strong><span style="font-size:10px;color:var(--muted)">/20</span>
       </div></td>
-      <td data-label="Nom"><strong>${hl(e.nom)}</strong></td>
-      <td data-label="Prénom">${hl(e.prenom)}</td>
+      <td data-label="Nom"><strong>${hl(display.nom)}</strong></td>
+      <td data-label="Prénom">${hl(display.prenom)}</td>
       <td data-label="Résultat"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></td>
       <td data-label="Fr. écrit" style="text-align:center">${e.fr_ecrit ?? "—"}</td>
       <td data-label="Fr. oral" style="text-align:center">${e.fr_oral ?? "—"}</td>
@@ -911,16 +938,18 @@ window._showStudentModal = (nom, prenom) => {
   const rankedList = [...eleves].sort((a,b) => b.score - a.score);
   const rank = rankedList.findIndex(e => e.nom === nom && e.prenom === prenom) + 1;
   
+  const display = getStudentDisplayName(student);
+  
   let modalHtml = `
     <div id="student-modal" class="modal-overlay" onclick="window._closeStudentModal(event)">
       <div class="modal-content" onclick="event.stopPropagation()">
         <header class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px">
           <div style="display:flex; align-items:center; gap:12px">
             <div class="modal-avatar" style="background:${mc.color}; color:#fff; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px">
-              ${prenom.charAt(0)}${nom.charAt(0)}
+              ${display.prenom.charAt(0)}${display.nom.charAt(0)}
             </div>
             <div>
-              <h2 style="font-size:18px; font-weight:800; color:var(--text); margin-bottom:2px">${prenom} ${nom}</h2>
+              <h2 style="font-size:18px; font-weight:800; color:var(--text); margin-bottom:2px">${display.prenom} ${display.nom}</h2>
               <p style="font-size:12px; color:var(--muted)">Promotion ${eleveYear} · Rang: <strong>${rank}</strong>/${eleves.length}</p>
             </div>
           </div>
@@ -988,4 +1017,85 @@ window._closeStudentModal = (e) => {
   }
   document.body.style.overflow = "";
   window.removeEventListener("keydown", window._modalEscHandler);
+};
+
+/* ── Admin Auth Window Functions ────────────────────────────────────────────── */
+window._showLoginModal = () => {
+  const modalHtml = `
+    <div id="login-modal" class="modal-overlay" onclick="window._closeLoginModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <header class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <div style="background:var(--accent); color:#fff; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px">
+              🔑
+            </div>
+            <div>
+              <h2 style="font-size:16px; font-weight:800; color:var(--text)">Connexion Administrateur</h2>
+              <p style="font-size:11px; color:var(--muted)">Accéder aux données nominatives</p>
+            </div>
+          </div>
+          <button class="close-modal-btn" onclick="window._closeLoginModal()" style="border:none; background:none; font-size:28px; color:var(--muted); cursor:pointer; padding:4px; line-height:1">&times;</button>
+        </header>
+        <div class="modal-body">
+          <form class="login-form" onsubmit="window._submitLogin(event)">
+            <div class="form-group">
+              <label for="username">Identifiant</label>
+              <input type="text" id="username" required autocomplete="username" placeholder="admin" />
+            </div>
+            <div class="form-group">
+              <label for="password">Mot de passe</label>
+              <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" />
+            </div>
+            <div id="login-error-msg" class="login-error" style="display:none"></div>
+            <button type="submit" class="login-btn-submit">Se connecter</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  const div = document.createElement("div");
+  div.id = "login-modal-container";
+  div.innerHTML = modalHtml;
+  document.body.appendChild(div);
+  document.body.style.overflow = "hidden";
+  
+  window._loginModalEscHandler = (e) => {
+    if (e.key === "Escape") window._closeLoginModal();
+  };
+  window.addEventListener("keydown", window._loginModalEscHandler);
+};
+
+window._closeLoginModal = (e) => {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const container = document.getElementById("login-modal-container");
+  if (container) {
+    container.remove();
+  }
+  document.body.style.overflow = "";
+  window.removeEventListener("keydown", window._loginModalEscHandler);
+};
+
+window._submitLogin = (e) => {
+  e.preventDefault();
+  const user = document.getElementById("username")?.value;
+  const pass = document.getElementById("password")?.value;
+  const errorMsg = document.getElementById("login-error-msg");
+  
+  if (user === "admin" && pass === "admin") {
+    localStorage.setItem("lfjp_bac_admin", "true");
+    isAdmin = true;
+    window._closeLoginModal();
+    render();
+  } else {
+    if (errorMsg) {
+      errorMsg.textContent = "Identifiant ou mot de passe incorrect.";
+      errorMsg.style.display = "block";
+    }
+  }
+};
+
+window._logout = () => {
+  localStorage.removeItem("lfjp_bac_admin");
+  isAdmin = false;
+  render();
 };
