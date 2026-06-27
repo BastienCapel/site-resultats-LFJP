@@ -7,7 +7,361 @@ import { getMentionKey, MENTION_CONFIG } from "../data.js";
 // { nom, prenom, francais, maths, hg_emc, sciences, oral, controle_continu,
 //   score, resultat }
 
+export const ELEVES_DNB_2021 = [
+  {
+    "nom": "AUQUE",
+    "prenom": "Margaux Léane",
+    "score": 15.16,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "AUREJAC",
+    "prenom": "Nanou Fatou Rachel",
+    "score": 13.82,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "BASSENE",
+    "prenom": "Maxence",
+    "score": 16.65,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "BEN SAID MASS",
+    "prenom": "Aicha Corinne",
+    "score": 10.22,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "CISSE",
+    "prenom": "Serigne Abdou Aziz",
+    "score": 14.72,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "CLAD",
+    "prenom": "Steffen",
+    "score": 10,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "DEBOES",
+    "prenom": "Iman",
+    "score": 14.3,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "DERVAL",
+    "prenom": "Antoine Julien",
+    "score": 14.9,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "DESCHUYTER",
+    "prenom": "Alicia",
+    "score": 18.05,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "DHENIN",
+    "prenom": "Chloé",
+    "score": 14.22,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "DIA",
+    "prenom": "Gwendoline Aïcha",
+    "score": 10.31,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "DIA",
+    "prenom": "Mamadou",
+    "score": 11.5,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "DIEYE",
+    "prenom": "Alyssa",
+    "score": 15.26,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "GARA",
+    "prenom": "Aïda",
+    "score": 17.2,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "GASSAMA",
+    "prenom": "Dieynaba",
+    "score": 14.16,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "KANDJI",
+    "prenom": "Elhadj Mactar",
+    "score": 12.95,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "MBENGUE",
+    "prenom": "Ndeye Saly",
+    "score": 8.65,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "MECHALLAL",
+    "prenom": "Anissa",
+    "score": 15.55,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "NDIAYE",
+    "prenom": "Mouhamed Bachir",
+    "score": 15.94,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "NIOX",
+    "prenom": "Amary René",
+    "score": 12.09,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "ONCINA",
+    "prenom": "Iyan Tidiane Manuel",
+    "score": 15.56,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "PAILLARD",
+    "prenom": "Thomas René Thierry",
+    "score": 9,
+    "resultat": "Absent"
+  },
+  {
+    "nom": "RASHID",
+    "prenom": "Lina Sonia",
+    "score": 15.3,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "SENE",
+    "prenom": "Lena",
+    "score": 12.31,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "SENE",
+    "prenom": "Moussa",
+    "score": 12.99,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "SY",
+    "prenom": "Seynabou Babacar",
+    "score": 16.9,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "TEBER",
+    "prenom": "Nihat",
+    "score": 12.04,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "TOURE",
+    "prenom": "Dahina",
+    "score": 12.11,
+    "resultat": "Admis Mention Assez Bien"
+  }
+];
+
 export const ELEVES_DNB_2022 = [
+  {
+    "nom": "ABOUD",
+    "prenom": "Gaelle",
+    "score": 14.29,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "AZIZ",
+    "prenom": "Kenza",
+    "score": 14,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "AZIZ",
+    "prenom": "Rita",
+    "score": 14,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "BALAGUN",
+    "prenom": "Attie Eymerick",
+    "score": 12.05,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "BIANQUINCH",
+    "prenom": "Tessy Ethiera",
+    "score": 14.22,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "BOUNHOURE",
+    "prenom": "Raphael",
+    "score": 18.25,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "CLEMENT DE GIVRY",
+    "prenom": "Christine",
+    "score": 14,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "COMTE",
+    "prenom": "Chloe",
+    "score": 14,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "DIOUF",
+    "prenom": "Aminata",
+    "score": 14.26,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "EL HAQAOUI",
+    "prenom": "Lokmane Abdelhakim",
+    "score": 12.05,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "FALL",
+    "prenom": "Tom",
+    "score": 12.62,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "FORTES",
+    "prenom": "Claudia Larissa",
+    "score": 14.14,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "GUEYE",
+    "prenom": "Mohamed",
+    "score": 10,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "HACHIM",
+    "prenom": "Lina",
+    "score": 16.86,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "HOUOT",
+    "prenom": "Alaric",
+    "score": 5.55,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "JOSSERAND",
+    "prenom": "Mayli",
+    "score": 14.31,
+    "resultat": "Admis Mention Bien"
+  },
+  {
+    "nom": "KABAZ",
+    "prenom": "Lyne",
+    "score": 12.99,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "LHUSSIER",
+    "prenom": "Paul-Clement",
+    "score": 17.32,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "MAGNIER",
+    "prenom": "Arthur",
+    "score": 12,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "MAROT",
+    "prenom": "Rohan Jeff",
+    "score": 10.71,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "MAUNY",
+    "prenom": "Helena",
+    "score": 17.25,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "NDIAYE",
+    "prenom": "David",
+    "score": 11.16,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "NOUHANDO ROD",
+    "prenom": "Nicolas",
+    "score": 11.18,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "OZDEMIR",
+    "prenom": "Berrak",
+    "score": 16.76,
+    "resultat": "Admis Mention Très Bien"
+  },
+  {
+    "nom": "PERRIERE",
+    "prenom": "Esteban Bernard",
+    "score": 8.72,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "RAPHAT",
+    "prenom": "Erika",
+    "score": 10,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "SERVATE",
+    "prenom": "Leandre",
+    "score": 10.26,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "SIDHOUM",
+    "prenom": "Anas",
+    "score": 10,
+    "resultat": "Admis"
+  },
+  {
+    "nom": "SOW",
+    "prenom": "Diye",
+    "score": 13.09,
+    "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "THIANE",
+    "prenom": "Cheikh Mouhamadou",
+    "score": 8.72,
+    "resultat": "Refusé"
+  }
+];
+
+export const ELEVES_DNB_2023 = [
   {
     "nom": "ACETO",
     "prenom": "Adama",
@@ -667,177 +1021,6 @@ export const ELEVES_DNB_2022 = [
     "controle_continu": 10.75,
     "score": 8.98,
     "resultat": "Refusé"
-  }
-];
-
-export const ELEVES_DNB_2023 = [
-  {
-    "nom": "AUQUE",
-    "prenom": "Margaux Léane",
-    "score": 15.16,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "AUREJAC",
-    "prenom": "Nanou Fatou Rachel",
-    "score": 13.82,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "BASSENE",
-    "prenom": "Maxence",
-    "score": 16.65,
-    "resultat": "Admis Mention Très Bien"
-  },
-  {
-    "nom": "BEN SAID MASS",
-    "prenom": "Aicha Corinne",
-    "score": 10.22,
-    "resultat": "Admis"
-  },
-  {
-    "nom": "CISSE",
-    "prenom": "Serigne Abdou Aziz",
-    "score": 14.72,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "CLAD",
-    "prenom": "Steffen",
-    "score": 10,
-    "resultat": "Admis"
-  },
-  {
-    "nom": "DEBOES",
-    "prenom": "Iman",
-    "score": 14.3,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "DERVAL",
-    "prenom": "Antoine Julien",
-    "score": 14.9,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "DESCHUYTER",
-    "prenom": "Alicia",
-    "score": 18.05,
-    "resultat": "Admis Mention Très Bien"
-  },
-  {
-    "nom": "DHENIN",
-    "prenom": "Chloé",
-    "score": 14.22,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "DIA",
-    "prenom": "Gwendoline Aïcha",
-    "score": 10.31,
-    "resultat": "Admis"
-  },
-  {
-    "nom": "DIA",
-    "prenom": "Mamadou",
-    "score": 11.5,
-    "resultat": "Admis"
-  },
-  {
-    "nom": "DIEYE",
-    "prenom": "Alyssa",
-    "score": 15.26,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "GARA",
-    "prenom": "Aïda",
-    "score": 17.2,
-    "resultat": "Admis Mention Très Bien"
-  },
-  {
-    "nom": "GASSAMA",
-    "prenom": "Dieynaba",
-    "score": 14.16,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "KANDJI",
-    "prenom": "Elhadj Mactar",
-    "score": 12.95,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "MBENGUE",
-    "prenom": "Ndeye Saly",
-    "score": 8.65,
-    "resultat": "Refusé"
-  },
-  {
-    "nom": "MECHALLAL",
-    "prenom": "Anissa",
-    "score": 15.55,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "NDIAYE",
-    "prenom": "Mouhamed Bachir",
-    "score": 15.94,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "NIOX",
-    "prenom": "Amary René",
-    "score": 12.09,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "ONCINA",
-    "prenom": "Iyan Tidiane Manuel",
-    "score": 15.56,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "PAILLARD",
-    "prenom": "Thomas René Thierry",
-    "score": 9,
-    "resultat": "Absent"
-  },
-  {
-    "nom": "RASHID",
-    "prenom": "Lina Sonia",
-    "score": 15.3,
-    "resultat": "Admis Mention Bien"
-  },
-  {
-    "nom": "SENE",
-    "prenom": "Lena",
-    "score": 12.31,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "SENE",
-    "prenom": "Moussa",
-    "score": 12.99,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "SY",
-    "prenom": "Seynabou Babacar",
-    "score": 16.9,
-    "resultat": "Admis Mention Très Bien"
-  },
-  {
-    "nom": "TEBER",
-    "prenom": "Nihat",
-    "score": 12.04,
-    "resultat": "Admis Mention Assez Bien"
-  },
-  {
-    "nom": "TOURE",
-    "prenom": "Dahina",
-    "score": 12.11,
-    "resultat": "Admis Mention Assez Bien"
   }
 ];
 
@@ -1948,6 +2131,54 @@ export const ELEVES_DNB_2025 = [
     "controle_continu": 14.5,
     "score": 12.95,
     "resultat": "Admis Mention Assez Bien"
+  },
+  {
+    "nom": "PEREZ NGOLI",
+    "prenom": "Micah Bruno Jean-Jacques",
+    "francais": 7.7,
+    "maths": 12.6,
+    "hg_emc": 5.6,
+    "sciences": 8,
+    "oral": 11.8,
+    "controle_continu": 9.25,
+    "score": 9.49,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "SOW",
+    "prenom": "Mariam Seck",
+    "francais": 10,
+    "maths": 3.2,
+    "hg_emc": 10.4,
+    "sciences": 8.4,
+    "oral": 7.3,
+    "controle_continu": 10.75,
+    "score": 9.12,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "SAAD",
+    "prenom": "Ramy",
+    "francais": 8.5,
+    "maths": 8.8,
+    "hg_emc": 3.6,
+    "sciences": 8,
+    "oral": 13.1,
+    "controle_continu": 8.5,
+    "score": 8.78,
+    "resultat": "Refusé"
+  },
+  {
+    "nom": "NAMOYA",
+    "prenom": "Fifi Cheredi",
+    "francais": 2.8,
+    "maths": 3,
+    "hg_emc": 4.8,
+    "sciences": 0.8,
+    "oral": 13.6,
+    "controle_continu": 6.25,
+    "score": 5.9,
+    "resultat": "Refusé"
   }
 ];
 
@@ -1960,8 +2191,8 @@ export const dnbExam = {
   niveau: "3ème",
   emoji: "📘",
   scoreMax: 20,
-  years: [2022, 2023, 2024, 2025, 2026],
-  yearColors: { 2022:"#cbd5e1", 2023:"#94a3b8", 2024:"#64748b", 2025:"#0ea5e9", 2026:"#0284c7" },
+  years: [2021, 2022, 2023, 2024, 2025, 2026],
+  yearColors: { 2021:"#cbd5e1", 2022:"#a5b4fc", 2023:"#818cf8", 2024:"#a78bfa", 2025:"#0ea5e9", 2026:"#0284c7" },
 
   // Épreuves finales + contrôle continu (socle commun), exprimés sur /20
   epreuves: [
@@ -1986,6 +2217,7 @@ export const dnbExam = {
   },
 
   data: {
+    2021: ELEVES_DNB_2021,
     2022: ELEVES_DNB_2022,
     2023: ELEVES_DNB_2023,
     2024: ELEVES_DNB_2024,
