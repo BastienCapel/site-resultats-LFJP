@@ -1294,8 +1294,26 @@ const HELP_DATA = {
   stats_details: {
     title: "Statistiques détaillées par épreuve",
     body: `
-      <p><strong>Utilité :</strong> Tableau exhaustif compilant tous les indicateurs statistiques (Moyenne, Médiane, Écart-type, Quartiles, Notes minimales/maximales, et Taux de réussite) pour chaque matière.</p>
-      <p style="margin-top:10px"><strong>Comment le lire :</strong> Permet une analyse fine et comparative : la dispersion (&sigma;), les têtes de classes (Q3, Max), et le taux d'élèves au-dessus de la moyenne (&ge;10/20).</p>
+      <p><strong>Utilité :</strong> Ce tableau compile pour chaque matière les indicateurs clés de performance et de répartition des notes.</p>
+      <p style="margin-top:12px"><strong>Comment lire les indicateurs :</strong></p>
+      <ul style="margin-left:20px; margin-top:6px; display:flex; flex-direction:column; gap:6px">
+        <li><strong>Moyenne :</strong> Niveau moyen obtenu à l'épreuve par l'ensemble des candidats.</li>
+        <li><strong>Médiane :</strong> La note du milieu. 50% des élèves ont obtenu moins, et 50% ont obtenu plus.</li>
+        <li><strong>Écart-type (&sigma;) :</strong> Mesure de l'hétérogénéité. Plus il est élevé, plus le grand écart entre les notes est important.</li>
+        <li><strong>1er Quartile (Q1) :</strong> 25% des élèves ont obtenu cette note ou moins. Mesure le niveau des élèves plus fragiles.</li>
+        <li><strong>3e Quartile (Q3) :</strong> 75% des élèves ont obtenu cette note ou moins (donc 25% ont eu plus). Mesure la tête de classe.</li>
+        <li><strong>Min / Max :</strong> Les notes extrêmes (la plus basse et la plus haute) obtenues dans la matière.</li>
+        <li><strong>≥10/20 &amp; Taux :</strong> Proportion et pourcentage d'élèves ayant obtenu la moyenne (&ge; 10/20) à cette épreuve.</li>
+      </ul>
+      <p style="margin-top:12px"><strong>💡 L'analogie de la file d'élèves pour comprendre Q1, Médiane et Q3 :</strong><br>
+        Imaginez que vous alignez tous les élèves du moins bon au meilleur :
+        <ul style="margin-left:20px; margin-top:6px">
+          <li>La note du premier quart de la file (25%) est <strong>Q1</strong>.</li>
+          <li>La note de l'élève pile au milieu (50%) est la <strong>Médiane</strong>.</li>
+          <li>La note aux trois quarts de la file (75%) est <strong>Q3</strong>.</li>
+        </ul>
+        La "boîte" bleue du graphique correspond à l'intervalle entre Q1 et Q3 et contient les <strong>50% d'élèves du milieu</strong> de la classe.
+      </p>
     `
   },
   spec_compare: {
