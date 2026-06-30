@@ -13,8 +13,12 @@ jspm_packages/
 
 # build directory
 dist/
+dist-full/
 dist-ssr/
 *.local
+
+# Vercel
+.vercel
 
 # Editor folders and IDE-specific files
 .idea/

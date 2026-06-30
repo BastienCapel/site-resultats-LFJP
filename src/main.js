@@ -17,8 +17,17 @@ let analysisYear, eleveYear;
 let sortKey      = "score";
 let sortAsc      = false;
 
-// État de l'accès administrateur
-let isAdmin = localStorage.getItem("lfjp_admin") === "true";
+// ── Mode de diffusion ─────────────────────────────────────────────────────────
+// FULL = build complet (espace réservé, protégé par mot de passe serveur sur Vercel) :
+//   noms entiers + notes détaillées par matière, onglet « Élèves » et bulletins.
+// !FULL = build public (GitHub Pages) : AUCUNE donnée nominative — les noms et les
+//   notes individuelles sont retirés du code lui-même au moment du build (plugin Vite).
+//   Seules les statistiques globales et anonymisées sont diffusées.
+const FULL = import.meta.env.VITE_FULL === "1";
+
+// Dans le build complet, les données nominatives sont toujours visibles (le contrôle
+// d'accès est assuré côté serveur, pas par un login factice côté navigateur).
+const isAdmin = FULL;
 
 // ── Chargement d'un examen : (ré)initialise toutes les constantes dérivées ─────
 function loadExam(id) {
@@ -175,10 +184,7 @@ function render() {
       </div>
       <div style="display:flex; align-items:center; gap:12px">
         <span class="header-badge">${YEARS.length ? `${YEARS[0]} → ${YEARS[YEARS.length-1]}` : ""}</span>
-        ${isAdmin
-          ? `<button class="admin-btn logout" onclick="window._logout()"><span class="admin-btn-icon">🔓</span> <span class="admin-btn-text">Se déconnecter</span></button>`
-          : `<button class="admin-btn login" onclick="window._showLoginModal()"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Accès Admin</span></button>`
-        }
+        ${FULL ? `<span class="admin-btn logout" style="cursor:default"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></span>` : ""}
       </div>
     </header>
     <nav class="exam-bar">
@@ -190,13 +196,13 @@ function render() {
         </button>`;
       }).join("")}
     </nav>
-    ${isAdmin ? `
+    ${FULL ? `
       <div class="admin-banner">
-        🛡️ Mode Administrateur activé — Données nominatives visibles
+        🔒 Espace réservé — données nominatives. Ne pas rediffuser.
       </div>
     ` : ""}
     <nav class="tabs-bar">
-      ${[["overview","Vue d'ensemble","Vue"],["analysis","Analyse par année","Analyse"],["evolution","Évolution & Comparaison","Évolution"],["eleves","Élèves","Élèves"]].map(([id,label,short]) =>
+      ${[["overview","Vue d'ensemble","Vue"],["analysis","Analyse par année","Analyse"],["evolution","Évolution & Comparaison","Évolution"],...(FULL ? [["eleves","Élèves","Élèves"]] : [])].map(([id,label,short]) =>
         `<button class="tab-btn ${activeTab===id?"active":""}" onclick="window._tab('${id}')"><span class="tab-full">${label}</span><span class="tab-short">${short}</span></button>`
       ).join("")}
     </nav>
@@ -212,8 +218,8 @@ function renderTab() {
   if      (activeTab === "overview")  el.innerHTML = renderOverview();
   else if (activeTab === "analysis")  el.innerHTML = renderAnalysis();
   else if (activeTab === "evolution") el.innerHTML = renderEvolution();
-  else if (activeTab === "eleves")    el.innerHTML = renderElevesList();
-  if (activeTab === "eleves")  bindTable();
+  else if (activeTab === "eleves" && FULL) el.innerHTML = renderElevesList();
+  if (activeTab === "eleves" && FULL)  bindTable();
   if (activeTab === "analysis") bindAnalysis();
 }
 
@@ -368,11 +374,13 @@ function renderTop5() {
   return top.map((e,i) => {
     const mk = getMentionKey(e.resultat);
     const mc = MENTION_CONFIG[mk];
-    const display = getStudentDisplayName(e);
+    // Site public : pas de nom — on affiche un rang anonyme. Build complet : nom réel.
+    const name = FULL ? (() => { const d = getStudentDisplayName(e); return `${d.prenom} ${d.nom}`; })()
+                      : (i === 0 ? "1ʳᵉ moyenne" : `${i + 1}ᵉ moyenne`);
     return `<div class="top-item">
       <div class="top-rank">${medals[i]}</div>
       <div class="top-info">
-        <div class="top-name">${display.prenom} ${display.nom}</div>
+        <div class="top-name">${name}</div>
         ${activeExam !== "ea" ? `<div class="top-mention"><span class="badge" style="background:${mc.bg};color:${mc.text}">${mc.short}</span></div>` : ""}
       </div>
       <div class="top-score" style="color:${scoreColor(e.score)}">${e.score}<span style="font-size:12px;color:var(--muted)">/20</span></div>
@@ -1182,86 +1190,9 @@ window._closeStudentModal = (e) => {
   window.removeEventListener("keydown", window._modalEscHandler);
 };
 
-/* ── Admin Auth Window Functions ────────────────────────────────────────────── */
-window._showLoginModal = () => {
-  const modalHtml = `
-    <div id="login-modal" class="modal-overlay" onclick="window._closeLoginModal(event)">
-      <div class="modal-content" onclick="event.stopPropagation()">
-        <header class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px">
-          <div style="display:flex; align-items:center; gap:12px">
-            <div style="background:var(--accent); color:#fff; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px">
-              🔑
-            </div>
-            <div>
-              <h2 style="font-size:16px; font-weight:800; color:var(--text)">Connexion Administrateur</h2>
-              <p style="font-size:11px; color:var(--muted)">Accéder aux données nominatives</p>
-            </div>
-          </div>
-          <button class="close-modal-btn" onclick="window._closeLoginModal()" style="border:none; background:none; font-size:28px; color:var(--muted); cursor:pointer; padding:4px; line-height:1">&times;</button>
-        </header>
-        <div class="modal-body">
-          <form class="login-form" onsubmit="window._submitLogin(event)">
-            <div class="form-group">
-              <label for="username">Identifiant</label>
-              <input type="text" id="username" required autocomplete="username" placeholder="admin" />
-            </div>
-            <div class="form-group">
-              <label for="password">Mot de passe</label>
-              <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" />
-            </div>
-            <div id="login-error-msg" class="login-error" style="display:none"></div>
-            <button type="submit" class="login-btn-submit">Se connecter</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  `;
-  const div = document.createElement("div");
-  div.id = "login-modal-container";
-  div.innerHTML = modalHtml;
-  document.body.appendChild(div);
-  document.body.style.overflow = "hidden";
-  
-  window._loginModalEscHandler = (e) => {
-    if (e.key === "Escape") window._closeLoginModal();
-  };
-  window.addEventListener("keydown", window._loginModalEscHandler);
-};
-
-window._closeLoginModal = (e) => {
-  if (e && e.stopPropagation) e.stopPropagation();
-  const container = document.getElementById("login-modal-container");
-  if (container) {
-    container.remove();
-  }
-  document.body.style.overflow = "";
-  window.removeEventListener("keydown", window._loginModalEscHandler);
-};
-
-window._submitLogin = (e) => {
-  e.preventDefault();
-  const user = document.getElementById("username")?.value;
-  const pass = document.getElementById("password")?.value;
-  const errorMsg = document.getElementById("login-error-msg");
-  
-  if (user === "admin" && pass === "admin") {
-    localStorage.setItem("lfjp_admin", "true");
-    isAdmin = true;
-    window._closeLoginModal();
-    render();
-  } else {
-    if (errorMsg) {
-      errorMsg.textContent = "Identifiant ou mot de passe incorrect.";
-      errorMsg.style.display = "block";
-    }
-  }
-};
-
-window._logout = () => {
-  localStorage.removeItem("lfjp_admin");
-  isAdmin = false;
-  render();
-};
+/* Le contrôle d'accès aux données nominatives est désormais assuré côté serveur
+   (mot de passe sur l'hébergement privé), et non plus par un login côté navigateur.
+   L'ancien modal de connexion « admin » a été supprimé. */
 
 const HELP_DATA = {
   candidats: {
