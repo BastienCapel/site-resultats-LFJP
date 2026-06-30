@@ -189,8 +189,8 @@ function render() {
       <div style="display:flex; align-items:center; gap:12px">
         <span class="header-badge">${YEARS.length ? `${YEARS[0]} → ${YEARS[YEARS.length-1]}` : ""}</span>
         ${FULL
-          ? `<span class="admin-btn logout" style="cursor:default"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></span>`
-          : `<a class="admin-btn login" href="${PRIVATE_SITE_URL}" target="_blank" rel="noopener" title="Réservé aux familles et personnels — accès par mot de passe"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></a>`
+          ? `<a class="admin-btn logout" href="/__auth/logout" title="Fermer la session"><span class="admin-btn-icon">🔓</span> <span class="admin-btn-text">Se déconnecter</span></a>`
+          : `<a class="admin-btn login" href="${PRIVATE_SITE_URL}" target="_blank" rel="noopener" title="Réservé au personnel — connexion Google @lfjpsaly.org"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></a>`
         }
       </div>
     </header>
