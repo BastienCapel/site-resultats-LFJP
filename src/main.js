@@ -25,6 +25,10 @@ let sortAsc      = false;
 //   Seules les statistiques globales et anonymisées sont diffusées.
 const FULL = import.meta.env.VITE_FULL === "1";
 
+// URL de l'espace réservé (site complet, protégé par mot de passe). Affiché comme
+// lien dans l'en-tête du site public.
+const PRIVATE_SITE_URL = "https://resultats-lfjp-prive.vercel.app";
+
 // Dans le build complet, les données nominatives sont toujours visibles (le contrôle
 // d'accès est assuré côté serveur, pas par un login factice côté navigateur).
 const isAdmin = FULL;
@@ -184,7 +188,10 @@ function render() {
       </div>
       <div style="display:flex; align-items:center; gap:12px">
         <span class="header-badge">${YEARS.length ? `${YEARS[0]} → ${YEARS[YEARS.length-1]}` : ""}</span>
-        ${FULL ? `<span class="admin-btn logout" style="cursor:default"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></span>` : ""}
+        ${FULL
+          ? `<span class="admin-btn logout" style="cursor:default"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></span>`
+          : `<a class="admin-btn login" href="${PRIVATE_SITE_URL}" target="_blank" rel="noopener" title="Réservé aux familles et personnels — accès par mot de passe"><span class="admin-btn-icon">🔒</span> <span class="admin-btn-text">Espace réservé</span></a>`
+        }
       </div>
     </header>
     <nav class="exam-bar">
