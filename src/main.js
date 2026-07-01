@@ -416,31 +416,38 @@ function renderTop5() {
 function renderCcVsEpComparison(year) {
   if (year !== 2026) return "";
   const stats = YEAR_STATS[year];
-  if (!stats || !stats.subAverages) return "";
+  if (!stats) return "";
+
+  // CC averages: use runtime subAverages if available, otherwise static fallback
+  const hasSubAvgs = stats.subAverages && stats.subAverages.cc.francais > 0;
+  const ccFr = hasSubAvgs ? stats.subAverages.cc.francais : 11.07;
+  const ccMa = hasSubAvgs ? stats.subAverages.cc.maths : 13.19;
+  const ccHgEmc = hasSubAvgs ? (stats.subAverages.cc.hg + stats.subAverages.cc.emc) / 2.0 : 12.78;
+  const ccSci = hasSubAvgs ? (stats.subAverages.cc.svt + stats.subAverages.cc.phys + stats.subAverages.cc.techno) / 3.0 : 13.94;
 
   const data = [
     {
       label: "Français",
-      cc: stats.subAverages.cc.francais,
-      ep: stats.subAverages.ep.francais,
+      cc: ccFr,
+      ep: stats.epStats.francais.avg,
       color: "#2563eb"
     },
     {
       label: "Mathématiques",
-      cc: stats.subAverages.cc.maths,
-      ep: stats.subAverages.ep.maths,
+      cc: ccMa,
+      ep: stats.epStats.maths.avg,
       color: "#1d4ed8"
     },
     {
       label: "Histoire-Géo · EMC",
-      cc: (stats.subAverages.cc.hg + stats.subAverages.cc.emc) / 2.0,
+      cc: ccHgEmc,
       ep: stats.epStats.hg_emc.avg,
       color: "#8b5cf6"
     },
     {
       label: "Sciences",
-      cc: (stats.subAverages.cc.svt + stats.subAverages.cc.phys + stats.subAverages.cc.techno) / 3.0,
-      ep: stats.subAverages.ep.sciences,
+      cc: ccSci,
+      ep: stats.epStats.sciences.avg,
       color: "#16a34a"
     }
   ];
