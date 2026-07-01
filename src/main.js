@@ -112,6 +112,22 @@ function deriveOfficial(eleves, stats) {
   return { total, admis, taux: total ? admis / total * 100 : 0, avg: stats ? stats.avg : 0 };
 }
 
+function computeSubAverages(eleves) {
+  const epKeys = ["fr_gram", "fr_dictee", "fr_redac", "francais", "maths", "hg", "emc", "svt", "phys", "sciences", "oral"];
+  const ccKeys = ["maths", "francais", "hg", "emc", "anglais", "espagnol", "eps", "svt", "phys", "techno", "arts", "musique"];
+  const ep = {};
+  const cc = {};
+  epKeys.forEach(k => {
+    const vals = eleves.map(e => e.details?.ep?.[k]).filter(v => v != null);
+    ep[k] = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  });
+  ccKeys.forEach(k => {
+    const vals = eleves.map(e => e.details?.cc?.[k]).filter(v => v != null);
+    cc[k] = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  });
+  return { ep, cc };
+}
+
 function buildYearStats() {
   YEAR_STATS = {};
   YEARS.forEach(y => {
@@ -124,9 +140,11 @@ function buildYearStats() {
       epStats:   computeEpStats(eleves),
       specStats: computeSpecStats(eleves),
       official:  OFFICIAL_STATS[y],
+      subAverages: computeSubAverages(eleves),
     };
   });
 }
+
 
 function emptyState(title) {
   return `<div class="container"><div class="card" style="text-align:center;padding:48px 24px">
@@ -395,6 +413,80 @@ function renderTop5() {
   }).join("");
 }
 
+function renderCcVsEpComparison(year) {
+  if (year !== 2026) return "";
+  const stats = YEAR_STATS[year];
+  if (!stats || !stats.subAverages) return "";
+
+  const data = [
+    {
+      label: "Français",
+      cc: stats.subAverages.cc.francais,
+      ep: stats.subAverages.ep.francais,
+      color: "#2563eb"
+    },
+    {
+      label: "Mathématiques",
+      cc: stats.subAverages.cc.maths,
+      ep: stats.subAverages.ep.maths,
+      color: "#1d4ed8"
+    },
+    {
+      label: "Histoire-Géo · EMC",
+      cc: (stats.subAverages.cc.hg + stats.subAverages.cc.emc) / 2.0,
+      ep: stats.epStats.hg_emc.avg,
+      color: "#8b5cf6"
+    },
+    {
+      label: "Sciences",
+      cc: (stats.subAverages.cc.svt + stats.subAverages.cc.phys + stats.subAverages.cc.techno) / 3.0,
+      ep: stats.subAverages.ep.sciences,
+      color: "#16a34a"
+    }
+  ];
+
+  return `
+    <div class="card mb16">
+      <div class="card-title">Comparatif Contrôle Continu vs Épreuves Ponctuelles — ${year} <span class="info-btn" onclick="window._showHelpModal('cc_vs_ep')">?</span></div>
+      <div style="display:flex; flex-direction:column; gap:20px; margin-top:12px">
+        ${data.map(d => {
+          const diff = d.ep - d.cc;
+          const diffSign = diff >= 0 ? "+" : "";
+          const diffColor = diff >= 0 ? "var(--green)" : "var(--red)";
+          const ccPct = (d.cc / 20 * 100).toFixed(1);
+          const epPct = (d.ep / 20 * 100).toFixed(1);
+          return `
+            <div style="border-bottom:1px solid var(--border); padding-bottom:12px">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                <span style="font-size:13px; font-weight:700; color:var(--text)">${d.label}</span>
+                <span style="font-size:11px; font-weight:700; color:${diffColor}; background:rgba(0,0,0,0.05); padding:2px 6px; border-radius:4px">
+                  Différence: ${diffSign}${diff.toFixed(2)} pts
+                </span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <div style="display:grid; grid-template-columns: 120px 1fr 50px; align-items:center; gap:12px">
+                  <span style="font-size:11px; color:var(--muted)">Contrôle Continu</span>
+                  <div style="height:10px; background:var(--bg); border-radius:5px; overflow:hidden">
+                    <div style="height:100%; width:${ccPct}%; background:#0891b2; border-radius:5px; opacity:0.8"></div>
+                  </div>
+                  <span style="font-size:11px; font-weight:700; text-align:right; color:#0891b2">${d.cc.toFixed(2)}</span>
+                </div>
+                <div style="display:grid; grid-template-columns: 120px 1fr 50px; align-items:center; gap:12px">
+                  <span style="font-size:11px; color:var(--muted)">Épreuve Écrite/EP</span>
+                  <div style="height:10px; background:var(--bg); border-radius:5px; overflow:hidden">
+                    <div style="height:100%; width:${epPct}%; background:${d.color}; border-radius:5px; opacity:0.8"></div>
+                  </div>
+                  <span style="font-size:11px; font-weight:700; text-align:right; color:${d.color}">${d.ep.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TAB 2 — ANALYSE PAR ANNÉE (avec sélecteur)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -452,6 +544,8 @@ function renderAnalysis() {
       <div class="card-title">Statistiques détaillées par épreuve — ${y} <span class="info-btn" onclick="window._showHelpModal('stats_details')">?</span></div>
       <div style="display:flex;flex-direction:column;gap:12px">${renderEpreuvesFullStats(eleves)}</div>
     </div>
+
+    ${renderCcVsEpComparison(y)}
 
     ${SPEC_YEARS.includes(y) ? `<div class="card mb16">
       <div class="card-title">Enseignements de spécialité — ${y} <span class="info-btn" onclick="window._showHelpModal('spec_compare')">?</span></div>
@@ -748,10 +842,12 @@ function renderEvolution() {
       ${renderEpreuvesParAnnee()}
     </div>
 
+    ${SPEC_KEYS.length > 0 ? `
     <div class="card mb16">
       <div class="card-title">Spécialités — comparaison des promotions <span class="info-btn" onclick="window._showHelpModal('spec_compare')">?</span></div>
       ${renderSpecComparison()}
     </div>
+    ` : ""}
 
     <div class="card">
       <div class="card-title">Distributions comparées — boîtes à moustaches <span class="info-btn" onclick="window._showHelpModal('boxplot')">?</span></div>
@@ -1083,6 +1179,24 @@ function renderSpecAveragesChart(year) {
   </div>`;
 }
 
+function renderSubRow(label, note, maxVal, classAvg) {
+  if (note == null) return "";
+  const studentPct = (note / maxVal * 100).toFixed(1);
+  const avgPct = (classAvg / maxVal * 100).toFixed(1);
+  return `
+    <div class="bulletin-sub-row" style="display:grid; grid-template-columns: 140px 1fr 50px; align-items:center; gap:12px; padding:6px 14px 6px 28px; background:rgba(0,0,0,0.02); border-left: 2px solid var(--border); margin-top:-4px; margin-bottom: 2px">
+      <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${label}</div>
+      <div style="height:8px; background:var(--bg); border-radius:4px; position:relative; overflow:visible">
+        <div style="position:absolute; top:0; left:0; height:100%; width:${studentPct}%; background:var(--muted); border-radius:4px; opacity:0.5"></div>
+        <div style="position:absolute; top:-2px; left:${avgPct}%; width:2px; height:12px; background:#ef4444; border-radius:1px; z-index:2" title="Moyenne de classe: ${classAvg.toFixed(2)}"></div>
+      </div>
+      <div style="text-align:right; font-size:11px; font-weight:600; color:var(--muted)">
+        ${note}<span style="font-size:8px; font-weight:400; color:var(--muted)">/${maxVal}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderBulletinRow(label, note, classAvg, color, detail = null) {
   const studentPct = (note / 20 * 100).toFixed(1);
   const avgPct = (classAvg / 20 * 100).toFixed(1);
@@ -1146,24 +1260,79 @@ window._showStudentModal = (nom, prenom) => {
           </div>
           
           <div class="modal-section-title" style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:12px">Détail des notes</div>
+          
+          <style>
+            .cc-details summary::-webkit-details-marker { display: none; }
+            .cc-details summary { list-style: none; }
+            .cc-details[open] .chevron { transform: rotate(180deg); }
+          </style>
+
           <div class="bulletin-list" style="display:flex; flex-direction:column; gap:10px">
-            ${EP_KEYS.map((k, idx) => {
-              const note = student[k];
-              if (note == null) return "";
-              const classAvg = stats.epStats[k].avg;
-              const detail = (student.details && student.details[k]) || null;
-              return renderBulletinRow(EP_LABELS[idx], note, classAvg, EP_COLORS[idx], detail);
-            }).join("")}
-            
-            ${SPEC_KEYS.map((k, idx) => {
-              if (student[k] == null) return "";
-              const note = student[k];
-              const classAvg = stats.specStats[k] ? stats.specStats[k].avg : 10;
-              const detail = (student.details && student.details[k]) || null;
-              return renderBulletinRow(SPEC_LABELS[idx], note, classAvg, SPEC_COLORS[idx], detail);
-            }).join("")}
-            
-            ${EXAM.optField && student[EXAM.optField.key] != null ? renderBulletinRow(EXAM.optField.label, student[EXAM.optField.key], EXAM.optField.classAvg ?? 11, "#6b7280") : ""}
+            ${student.details && student.details.ep ? `
+              <!-- Français -->
+              ${renderBulletinRow("Français", student.details.ep.francais, stats.subAverages.ep.francais, "#2563eb")}
+              ${renderSubRow("Grammaire / Compréhension", student.details.ep.fr_gram, 50, stats.subAverages.ep.fr_gram)}
+              ${renderSubRow("Dictée", student.details.ep.fr_dictee, 10, stats.subAverages.ep.fr_dictee)}
+              ${renderSubRow("Rédaction", student.details.ep.fr_redac, 40, stats.subAverages.ep.fr_redac)}
+              
+              <!-- Mathématiques -->
+              ${renderBulletinRow("Mathématiques", student.details.ep.maths, stats.subAverages.ep.maths, "#1d4ed8")}
+              
+              <!-- Histoire-Géo · EMC -->
+              ${renderBulletinRow("Histoire-Géo · EMC", student.hg_emc, stats.epStats.hg_emc.avg, "#8b5cf6")}
+              ${renderSubRow("Histoire-Géographie", student.details.ep.hg, 20, stats.subAverages.ep.hg)}
+              ${renderSubRow("EMC", student.details.ep.emc, 20, stats.subAverages.ep.emc)}
+              
+              <!-- Sciences -->
+              ${renderBulletinRow("Sciences", student.details.ep.sciences, stats.subAverages.ep.sciences, "#16a34a")}
+              ${renderSubRow("SVT", student.details.ep.svt, 10, stats.subAverages.ep.svt)}
+              ${renderSubRow("Physique-Chimie", student.details.ep.phys, 10, stats.subAverages.ep.phys)}
+              
+              <!-- Oral -->
+              ${renderBulletinRow("Oral (soutenance)", student.details.ep.oral, stats.subAverages.ep.oral, "#f59e0b")}
+              
+              <!-- Contrôle continu -->
+              ${renderBulletinRow("Contrôle continu", student.controle_continu, stats.epStats.controle_continu.avg, "#0891b2")}
+              
+              <details class="cc-details" style="margin-top: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);">
+                <summary style="padding: 10px 14px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; color: var(--text);">
+                  <span>📋 Détail du contrôle continu (12 matières)</span>
+                  <span class="chevron" style="font-size: 8px; color: var(--muted); transition: transform 0.2s;">▼</span>
+                </summary>
+                <div style="padding: 10px 0; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); max-height: 250px; overflow-y: auto;">
+                  ${renderSubRow("Mathématiques", student.details.cc.maths, 20, stats.subAverages.cc.maths)}
+                  ${renderSubRow("Français", student.details.cc.francais, 20, stats.subAverages.cc.francais)}
+                  ${renderSubRow("Histoire-Géographie", student.details.cc.hg, 20, stats.subAverages.cc.hg)}
+                  ${renderSubRow("EMC", student.details.cc.emc, 20, stats.subAverages.cc.emc)}
+                  ${renderSubRow("LV1 Anglais", student.details.cc.anglais, 20, stats.subAverages.cc.anglais)}
+                  ${renderSubRow("LV2 Espagnol", student.details.cc.espagnol, 20, stats.subAverages.cc.espagnol)}
+                  ${renderSubRow("EPS", student.details.cc.eps, 20, stats.subAverages.cc.eps)}
+                  ${renderSubRow("SVT", student.details.cc.svt, 20, stats.subAverages.cc.svt)}
+                  ${renderSubRow("Physique-Chimie", student.details.cc.phys, 20, stats.subAverages.cc.phys)}
+                  ${renderSubRow("Technologie", student.details.cc.techno, 20, stats.subAverages.cc.techno)}
+                  ${renderSubRow("Arts plastiques", student.details.cc.arts, 20, stats.subAverages.cc.arts)}
+                  ${renderSubRow("Éducation musicale", student.details.cc.musique, 20, stats.subAverages.cc.musique)}
+                </div>
+              </details>
+            ` : `
+              ${EP_KEYS.map((k, idx) => {
+                const note = student[k];
+                if (note == null) return "";
+                const classAvg = stats.epStats[k].avg;
+                const detail = (student.details && student.details[k]) || null;
+                return renderBulletinRow(EP_LABELS[idx], note, classAvg, EP_COLORS[idx], detail);
+              }).join("")}
+              
+              ${SPEC_KEYS.map((k, idx) => {
+                if (student[k] == null) return "";
+                const note = student[k];
+                const classAvg = stats.specStats[k] ? stats.specStats[k].avg : 10;
+                const detail = (student.details && student.details[k]) || null;
+                return renderBulletinRow(SPEC_LABELS[idx], note, classAvg, SPEC_COLORS[idx], detail);
+              }).join("")}
+              
+              ${EXAM.optField && student[EXAM.optField.key] != null ? renderBulletinRow(EXAM.optField.label, student[EXAM.optField.key], EXAM.optField.classAvg ?? 11, "#6b7280") : ""}
+            `}
           </div>
           
           <div style="display:flex; gap:16px; margin-top:20px; font-size:11px; color:var(--muted); justify-content:center">
