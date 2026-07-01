@@ -87,15 +87,27 @@ export default async function middleware(request) {
     const claims = decodeJwtPayload(tokens.id_token);
     if (!claims) return deny('Jeton Google illisible.');
 
-    const emailOk = typeof claims.email === 'string'
-      && claims.email.toLowerCase().endsWith('@' + ALLOWED_DOMAIN)
-      && claims.email_verified === true;
-    const domainOk = claims.hd === ALLOWED_DOMAIN;
+    const emailLower = typeof claims.email === 'string' ? claims.email.toLowerCase() : '';
+    const emailVerified = claims.email_verified === true;
+
+    // Récupération et parsing des emails personnels autorisés
+    const personalEmailsStr = process.env.ALLOWED_PERSONAL_EMAILS || '';
+    const personalEmails = new Set(
+      personalEmailsStr
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    const isOrgEmail = emailLower.endsWith('@' + ALLOWED_DOMAIN) && claims.hd === ALLOWED_DOMAIN;
+    const isAllowedPersonalEmail = personalEmails.has(emailLower);
+
+    const userAuthorized = emailVerified && (isOrgEmail || isAllowedPersonalEmail);
     const audOk = claims.aud === CLIENT_ID;
     const notExpired = typeof claims.exp === 'number' && claims.exp * 1000 > Date.now();
 
-    if (!(emailOk && domainOk && audOk && notExpired)) {
-      return deny(`Accès réservé aux comptes @${ALLOWED_DOMAIN}.`, 403);
+    if (!(userAuthorized && audOk && notExpired)) {
+      return deny(`Accès réservé aux comptes @${ALLOWED_DOMAIN} ou adresses autorisées.`, 403);
     }
 
     const session = await sign(JSON.stringify({ email: claims.email, exp: Date.now() + SESSION_TTL_MS }), SECRET);

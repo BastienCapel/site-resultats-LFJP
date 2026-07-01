@@ -100,7 +100,7 @@ export const ELEVES_2025 = [
 
 // ── 2026 ── (48 candidats, source : CSV + Excel RESULTATS BAC LFJP SALY)
 export const ELEVES_2026 = [
-  { nom:"SIDHOUM",                           prenom:"Anas",                    fr_ecrit:9,  fr_oral:9,  philo:3,  grand_oral:12, hggsp:null, ses:null, llce:null, maths:5,    phy_chimie:5,    svt:null, opt:8,    score:8.67,  resultat:"Passe le second groupe" },
+  { nom:"SIDHOUM",                           prenom:"Anas",                    fr_ecrit:9,  fr_oral:9,  philo:3,  grand_oral:12, hggsp:null, ses:null, llce:null, maths:5,    phy_chimie:5,    svt:null, opt:8,    score:10.0,  resultat:"Admis" },
   { nom:"SOW",                               prenom:"Diye",                    fr_ecrit:11, fr_oral:11, philo:7,  grand_oral:6,  hggsp:null, ses:null, llce:13,   maths:null, phy_chimie:null, svt:12,   opt:8.7,  score:10.61, resultat:"Admis" },
   { nom:"MOUABE",                            prenom:"Aaron Stephane",          fr_ecrit:10, fr_oral:18, philo:8,  grand_oral:14, hggsp:null, ses:10,   llce:null, maths:null, phy_chimie:null, svt:9,    opt:7.4,  score:11.51, resultat:"Admis" },
   { nom:"BASTIDE AHMED",                     prenom:"Malik",                   fr_ecrit:10, fr_oral:16, philo:12, grand_oral:10, hggsp:null, ses:null, llce:null, maths:13,   phy_chimie:11,   svt:null, opt:13.5, score:12.9,  resultat:"Admis Mention Assez Bien" },
@@ -113,7 +113,7 @@ export const ELEVES_2026 = [
   { nom:"JACOBE",                            prenom:"Lou",                     fr_ecrit:13, fr_oral:16, philo:6,  grand_oral:12, hggsp:null, ses:null, llce:16,   maths:null, phy_chimie:null, svt:19,   opt:12.3, score:14.59, resultat:"Admis Mention Bien" },
   { nom:"LANZETTI",                          prenom:"Luigi",                   fr_ecrit:12, fr_oral:15, philo:8,  grand_oral:18, hggsp:null, ses:11,   llce:15,   maths:null, phy_chimie:null, svt:null, opt:9.9,  score:13.49, resultat:"Admis Mention Assez Bien" },
   { nom:"MERDJANOPOULOS",                    prenom:"Louka Jeff Gérard",       fr_ecrit:12, fr_oral:14, philo:7,  grand_oral:17, hggsp:null, ses:null, llce:null, maths:13,   phy_chimie:18,   svt:null, opt:12.7, score:14.01, resultat:"Admis Mention Bien" },
-  { nom:"MESSINA--EMIEUX",                   prenom:"Tom",                     fr_ecrit:8,  fr_oral:14, philo:7,  grand_oral:13, hggsp:null, ses:6,    llce:null, maths:null, phy_chimie:null, svt:5,    opt:8.2,  score:9.22,  resultat:"Passe le second groupe" },
+  { nom:"MESSINA--EMIEUX",                   prenom:"Tom",                     fr_ecrit:8,  fr_oral:14, philo:7,  grand_oral:13, hggsp:null, ses:6,    llce:null, maths:null, phy_chimie:null, svt:5,    opt:8.2,  score:10.0,  resultat:"Admis" },
   { nom:"MINGOU",                            prenom:"Cécilia Rita",            fr_ecrit:11, fr_oral:12, philo:11, grand_oral:17, hggsp:11,   ses:9,    llce:null, maths:null, phy_chimie:null, svt:null, opt:12.2, score:12.05, resultat:"Admis Mention Assez Bien" },
   { nom:"NGOM",                              prenom:"Khadija",                 fr_ecrit:12, fr_oral:18, philo:15, grand_oral:15, hggsp:13,   ses:null, llce:17,   maths:null, phy_chimie:null, svt:null, opt:14.2, score:14.83, resultat:"Admis Mention Bien" },
   { nom:"RISPAL",                            prenom:"Charlie Lou Jane",        fr_ecrit:11, fr_oral:17, philo:11, grand_oral:14, hggsp:null, ses:null, llce:null, maths:null, phy_chimie:7,    svt:16,   opt:12,   score:12.82, resultat:"Admis Mention Assez Bien" },
