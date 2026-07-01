@@ -156,7 +156,7 @@ export const OFFICIAL_STATS = {
   2023: { total:16, admis:14, taux:87.5,  avg:11.66 },
   2024: { total:20, admis:20, taux:100.0, avg:12.77 },
   2025: { total:26, admis:26, taux:100.0, avg:13.14 },
-  2026: { total:48, admis:46, taux:95.83, avg:13.32 },
+  2026: { total:48, admis:48, taux:100.0, avg:13.36 },
 };
 
 export const YEARS_DATA = {
